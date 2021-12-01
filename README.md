@@ -9,6 +9,7 @@ MinGW/Linux/Mac
 cd OMParser.jl/lib
 # need to have julia and julia-config.jl script in the path
 $ export PATH=$PATH:/path/to/julia/bin:/path/to/julia/share/julia/
+$ autoconf
 $ ./configure 
 $ make
 ````
