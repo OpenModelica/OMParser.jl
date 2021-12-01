@@ -1,0 +1,170 @@
+# check if we need any of these things and remove them if not!
+
+BUILDDIR=../build
+
+ANTLR=../3rdParty/antlr/3.2/libantlr3c-3.2
+ANTLRJAR = $(ANTLR)/../tool/antlr-3.2.jar
+ANTLRCMD=java -cp $(ANTLRJAR) org.antlr.Tool -Xconversiontimeout 10000 -report
+
+# TODO John: make a dep on Absyn.jl files, no MetaModelica files should be needed!
+MO_FILES= # ../Compiler/FrontEnd/Absyn.mo ../Compiler/Script/GlobalScript.mo ../Compiler/FrontEnd/Values.mo ../Compiler/Util/Error.mo ../Compiler/Util/Util.mo ../Compiler/Util/FMI.mo
+ERROREXTH=errorext.h
+OMBOOTH=OpenModelicaBootstrappingHeader.h
+
+BUILDINC = -I../Compiler/runtime -I../SimulationRuntime/c/meta -I../SimulationRuntime/c/ -I../SimulationRuntime/c/meta/gc -I../SimulationRuntime/c/util
+
+.PHONY: all
+.SUFFIXES: .h .c .o
+all: $(BUILDDIR) install
+
+$(BUILDDIR): 
+	mkdir -p $@
+
+install: $(BUILDDIR) $(ANTLR_LIB) libomparse-julia.a libomparse-julia$(SHREXT)
+	mkdir -p $(BUILDDIR)/include/$(host_short)/antlr3
+	cp $(ANTLR)/antlr3config.h $(ANTLR)/include/*.h $(BUILDDIR)/include/$(host_short)/antlr3
+	cp $(ANTLR_LIB) libomparse-julia.a libomparse-julia$(SHREXT) $(BUILDDIR)/$(LIB_OMC)/
+
+$(ANTLR)/antlr3config.h: $(ANTLR)/antlr3config.h.in $(ANTLR)/configure
+	(cd $(ANTLR) && ./configure $(ANTLR64) $(ANTLRDEBUG) $(host) CC="$(CC)" CXX="$(CXX)" LDFLAGS="" CFLAGS="$(CFLAGS)" CPPFLAGS="")
+libomantlr3.a: $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
+	# build the library
+	$(CC) ${CFLAGS} ${CPPFLAGS} -c $(ANTLR)/src/*.c -I$(ANTLR)/include -I$(ANTLR)
+	rm -f $@
+	ar -ru $@ antlr3*.o
+	ranlib $@
+	rm -f antlr3*.o
+
+ifneq ($(SHREXT),.a)
+libomantlr3$(SHREXT): $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
+	# build the library
+	$(CC) -shared -o $@ ${LDFLAGS} ${CFLAGS} ${CPPFLAGS} -DANTLR3_NODEBUGGER $(ANTLR)/src/*.c -I$(ANTLR)/include -I$(ANTLR)
+	test ! `uname` = Darwin || install_name_tool -id "@rpath/$@" $@
+endif
+
+HFILES = \
+  ModelicaParser.h \
+  ModelicaParserCommon.h \
+  MetaModelica_Lexer.h \
+  MetaModelica_Lexer_BaseModelica_Lexer.h \
+  ParModelica_Lexer.h \
+  ParModelica_Lexer_BaseModelica_Lexer.h \
+  Modelica_3_Lexer.h \
+  Modelica_3_Lexer_BaseModelica_Lexer.h \
+  $(ANTLR)/antlr3config.h
+
+OBJS_BASE = \
+ParModelica_Lexer_BaseModelica_Lexer.o ParModelica_Lexer.o \
+MetaModelica_Lexer_BaseModelica_Lexer.o MetaModelica_Lexer.o \
+Modelica_3_Lexer_BaseModelica_Lexer.o Modelica_3_Lexer.o \
+MetaModelica_Lexer.o MetaModelica_Lexer_BaseModelica_Lexer.o \
+Modelica_3_Lexer.o Modelica_3_Lexer_BaseModelica_Lexer.o \
+ParModelica_Lexer.o \
+ParModelica_Lexer_BaseModelica_Lexer.o \
+Parser_omc.o
+
+OBJS = $(OBJS_BASE) ModelicaParser.o
+
+ParModelica_Lexer.o: ParModelica_Lexer.h ParModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+MetaModelica_Lexer.o: MetaModelica_Lexer.h MetaModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+Modelica_3_Lexer.o: Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+ParModelica_Lexer_BaseModelica_Lexer.o: ParModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+MetaModelica_Lexer_BaseModelica_Lexer.o: MetaModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+Modelica_3_Lexer_BaseModelica_Lexer.o: Modelica_3_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
+ModelicaParser.o: ModelicaParser.c ModelicaParser.h ModelicaParserCommon.h $(OMBOOTH) $(ERROREXTH) $(ANTLR)/antlr3config.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) -I../Compiler
+
+libomparse-julia$(SHREXT): MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o Modelica_3_Lexer_BaseModelica_Lexer.jl.o ModelicaParser.jl.o OpenModelicaJuliaHeader.o libomantlr3.a
+	$(CC) -shared -o $@ $^ `eval echo \`julia-config.jl --ldflags --ldlibs\`` libomantlr3.a
+
+libomparse-julia.a: MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o Modelica_3_Lexer_BaseModelica_Lexer.jl.o ModelicaParser.jl.o OpenModelicaJuliaHeader.o
+	rm -f $@
+	ar -ru $@ MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o ModelicaParser.jl.o
+	ranlib $@
+
+# adrpo: TODO John: fix a new generator in Julia for the OpenModelicaJuliaHeader.h file
+OpenModelicaJuliaHeader.h: $(MO_FILES) GenerateJLHeader.mos
+	$(BUILDDIR)/bin -g=MetaModelica GenerateJLHeader.mos > $@.log || (cat $@.log && false)
+	@mv $@.new $@
+Parser_jl.o: Parser_jl.c $(HFILES) lookupTokenName.c OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+Modelica_3_Lexer.jl.o: Modelica_3_Lexer.c Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+Modelica_3_Lexer_BaseModelica_Lexer.jl.o: Modelica_3_Lexer_BaseModelica_Lexer.c Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+ModelicaParser.jl.o: ModelicaParser.c $(HFILES) OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+MetaModelicaJuliaLayer.o: MetaModelicaJuliaLayer.c MetaModelicaJuliaLayer.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+OpenModelicaJuliaHeader.o: OpenModelicaJuliaHeader.c OpenModelicaJuliaHeader.h
+	$(CC) -c -o $@ $< `eval echo \`julia-config.jl --cflags\`` $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+
+$(OBJS) : $(HFILES)
+
+libomparse.a: $(OBJS)
+	rm -f $@
+	ar -ru $@ $(OBJS)
+	ranlib $@
+
+parsergen = ModelicaParser.c ModelicaParser.h
+modelica3gen = Modelica_3_Lexer_BaseModelica_Lexer.c Modelica_3_Lexer_BaseModelica_Lexer.h Modelica_3_Lexer.c Modelica_3_Lexer.h
+metamodelicagen = MetaModelica_Lexer_BaseModelica_Lexer.c MetaModelica_Lexer_BaseModelica_Lexer.h MetaModelica_Lexer.c MetaModelica_Lexer.h
+parmodelicagen = ParModelica_Lexer_BaseModelica_Lexer.c ParModelica_Lexer_BaseModelica_Lexer.h ParModelica_Lexer.c ParModelica_Lexer.h
+
+ModelicaParser.stamp: Modelica.g
+	@rm -f $@.tmp
+	@touch $@.tmp
+	$(ANTLRCMD) $<
+	@touch -c $(parsergen)
+	@mv -f $@.tmp $@
+Modelica_3_Lexer.stamp: Modelica_3_Lexer.g BaseModelica_Lexer.g
+	@rm -f $@.tmp
+	@touch $@.tmp
+	$(ANTLRCMD) $<
+	@touch -c $(modelica3gen)
+	@mv -f $@.tmp $@
+MetaModelica_Lexer.stamp: MetaModelica_Lexer.g BaseModelica_Lexer.g
+	@rm -f $@.tmp
+	@touch $@.tmp
+	$(ANTLRCMD) $<
+	@touch -c $(metamodelicagen)
+	@mv -f $@.tmp $@
+ParModelica_Lexer.stamp: ParModelica_Lexer.g BaseModelica_Lexer.g
+	@rm -f $@.tmp
+	@touch $@.tmp
+	$(ANTLRCMD) $<
+	@touch -c $(parmodelicagen)
+	@mv -f $@.tmp $@
+
+$(parsergen) : ModelicaParser.stamp
+	## Recover from the removal of $@
+	@if test -f $@; then :; else \
+	rm -f $<; \
+	$(MAKE) $<; \
+	fi
+
+$(modelica3gen) : Modelica_3_Lexer.stamp
+	## Recover from the removal of $@
+	@if test -f $@; then :; else \
+	rm -f $<; \
+	$(MAKE) $<; \
+	fi
+
+$(metamodelicagen) : MetaModelica_Lexer.stamp
+	## Recover from the removal of $@
+	@if test -f $@; then :; else \
+	rm -f $<; \
+	$(MAKE) $<; \
+	fi
+
+$(parmodelicagen) : ParModelica_Lexer.stamp
+	## Recover from the removal of $@
+	@if test -f $@; then :; else \
+	rm -f $<; \
+	$(MAKE) $<; \
+	fi
+
+clean:
+	rm -rf $(BUILDDIR) Makefile config.* configure
+	rm -f *.o *.obj *.lib *.a *.so ModelicaParser.c ModelicaParser.h *Modelica*_Lexer.c *Modelica*_Lexer.h *.tokens *.stamp *.stamp.tmp
+	rm -f $(ANTLR)/antlr3config.h
