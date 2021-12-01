@@ -6,9 +6,9 @@ A parser for Modelica in Julia based on the OpenModelica parser.
 
 MinGW/Linux/Mac
 ````
-cd OMParser.jl/lib
-# need to have julia and julia-config.jl script in the path
+# need to have julia and julia-config.jl script in the path, maybe we can check for this via configure
 $ export PATH=$PATH:/path/to/julia/bin:/path/to/julia/share/julia/
+$ cd OMParser.jl/lib/parser
 $ autoconf
 $ ./configure 
 $ make
