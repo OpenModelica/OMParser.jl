@@ -106,12 +106,12 @@ AS_IF([! $JULIA $JULIACONFIG --cflags], [
 JULIA_CFLAGS=`$JULIA $JULIACONFIG --cflags`
 AC_MSG_RESULT([$JULIA_CFLAGS])
 
-AC_MSG_CHECKING([running julia julia-config.jl --ldflags])
-AS_IF([! $JULIA $JULIACONFIG --ldflags], [
+AC_MSG_CHECKING([running julia julia-config.jl --ldflags --ldlibs])
+AS_IF([! $JULIA $JULIACONFIG --ldflags --ldlibs], [
   AC_MSG_RESULT([no])
-  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldflags successfuly])
+  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldflags --ldlibs successfuly])
 ], [])
-JULIA_LDFLAGS=`$JULIA $JULIACONFIG --ldflags`
+JULIA_LDFLAGS=`$JULIA $JULIACONFIG --ldflags --ldlibs`
 AC_MSG_RESULT([$JULIA_LDFLAGS])
 
 AC_ARG_WITH(msys, [  --with-msys[=no]              Point to an msys installation, to setup CPPFLAGS, etc automatically.],
