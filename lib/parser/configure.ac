@@ -90,7 +90,7 @@ AS_IF([test x"$JULIA" != x"NOPROG"], [], [AC_MSG_ERROR([Please install julia and
 AC_MSG_RESULT([$JULIA])
 
 AC_MSG_CHECKING([julia path])
-JULIA_PATH=`$(dirname "$JULIA")`
+JULIA_PATH=$(dirname "$JULIA")
 AC_MSG_RESULT([$JULIA_PATH])
 
 AC_MSG_CHECKING([julia-config.jl])
