@@ -48,3 +48,5 @@ lib/parser/ParModelica_Lexer_BaseModelica_Lexer.h
 lib/parser/Parser_jl.o
 lib/parser/libomantlr3.a
 lib/parser/libomparse-julia.a
+confdefs*
+conftest.*

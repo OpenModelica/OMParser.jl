@@ -27,6 +27,9 @@ AC_SUBST(AR_SH)
 AC_SUBST(OMENCRYPTION)
 AC_SUBST(BSTATIC)
 AC_SUBST(MINGW_EXTRA_LDFLAGS)
+AC_SUBST(DLLEXT)
+AC_SUBST(JULIA_CFLAGS)
+AC_SUBST(JULIA_LDFLAGS)
 
 FINAL_MESSAGES="\nConfigured OMParser.jl successfully using the following options: []"
 
@@ -81,6 +84,35 @@ AC_PROG_CPP
 AC_PROG_MAKE_SET
 AC_PROG_FC
 
+AC_MSG_CHECKING([julia])
+AC_PATH_PROG(JULIA, julia, NOPROG, $PATH)
+AS_IF([test x"$JULIA" != x"NOPROG"], [], [AC_MSG_ERROR([Please install julia and add its directory to the path before configuring.])])
+AC_MSG_RESULT([$JULIA])
+
+AC_MSG_CHECKING([julia path])
+JULIA_PATH=`$(dirname "$JULIA")`
+AC_MSG_RESULT([$JULIA_PATH])
+
+AC_MSG_CHECKING([julia-config.jl])
+AC_PATH_PROG(JULIACONFIG,[julia-config.jl], NOPROG, $PATH:/usr/share/julia:$JULIA_PATH/../share/julia)
+AS_IF([test x"$JULIACONFIG" != x"NOPROG"], [], [AC_MSG_ERROR([Please install julia-config.jl and add its directory to the path before configuring.])])
+AC_MSG_RESULT([$JULIACONFIG])
+
+AC_MSG_CHECKING([running julia julia-config.jl --cflags])
+AS_IF([! $JULIA $JULIACONFIG --cflags], [
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --cflags successfuly])
+], [])
+JULIA_CFLAGS=`$JULIA $JULIACONFIG --cflags`
+AC_MSG_RESULT([$JULIA_CFLAGS])
+
+AC_MSG_CHECKING([running julia julia-config.jl --ldflags])
+AS_IF([! $JULIA $JULIACONFIG --ldflags], [
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldflags successfuly])
+], [])
+JULIA_LDFLAGS=`$JULIA $JULIACONFIG --ldflags`
+AC_MSG_RESULT([$JULIA_LDFLAGS])
 
 AC_ARG_WITH(msys, [  --with-msys[=no]              Point to an msys installation, to setup CPPFLAGS, etc automatically.],
   [
@@ -326,7 +358,7 @@ LDFLAGS="$LDFLAGS -Wl,-Bstatic  -Wl,-Bdynamic"
 AC_TRY_LINK([], [return 0;], [BSTATIC="true"],[BSTATIC="false"; AC_MSG_RESULT(["Don't know the flags to force static linking"])])
 LDFLAGS="$OLD_LDFLAGS"
 
-AC_SUBST(DLLEXT)
+MINGW_EXTRA_LDFLAGS=""
 
 AC_SUBST(CONFIG_OS)
 if test "$DARWIN" = "1"; then
@@ -402,6 +434,7 @@ elif echo "$host" | grep -iq "mingw"; then
   OMC_LIBS="$OMC_LIBS -lwsock32 -Wl,-Bstatic -lstdc++ -ltre  -lintl -liconv -Wl,-Bdynamic -lshlwapi"
   SUITESPARSE_SHARED=OFF
   CONFIG_OS=Windows_NT
+  MINGW_EXTRA_LDFLAGS="-Wl,-Bstatic -lwinpthread -Wl,-Bdynamic"
 else
   EXE=""
   STAEXT=".a"
@@ -487,8 +520,6 @@ CXXFLAGS="$CFLAGS $CXXFLAGS -Werror"
 AC_LANG_PUSH([C++])
 AC_TRY_LINK([], [], [CXXFLAGS="$CFLAGS $OLD_CXXFLAGS"], [CXXFLAGS="$OLD_CXXFLAGS"])
 AC_LANG_POP([C++])
-
-MINGW_EXTRA_LDFLAGS="-Wl,-Bstatic -lwinpthread -Wl,-Bdynamic"
 
 date=`date "+%Y-%m-%d %H:%M:%S"`
 

@@ -4,8 +4,6 @@ Adrian Pop [adrian.pop@liu.se] 2021-12-01
 
 MinGW/Linux/Mac
 ````
-# need to have julia and julia-config.jl script in the path
-$ export PATH=$PATH:/path/to/julia/bin:/path/to/julia/share/julia/
 $ autoconf
 $ ./configure 
 $ make

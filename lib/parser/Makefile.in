@@ -24,8 +24,12 @@ host_short=@host_short@
 LIB_OMC=lib/@host_short@
 ANTLR_LIB_STATIC=libomantlr3@STAEXT@
 ANTLR_LIB_SHARED=libomantlr3@SHREXT@
-include Makefile.common
 LDFLAGS=@RPATH@
+
+JULIA_CFLAGS=@JULIA_CFLAGS@
+JULIA_LDFLAGS=@JULIA_LDFLAGS@
+
+include Makefile.common
 
 Makefile: Makefile.in
 	(cd @top_srcdir@; ./config.status)
