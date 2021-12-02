@@ -30,6 +30,7 @@ AC_SUBST(MINGW_EXTRA_LDFLAGS)
 AC_SUBST(DLLEXT)
 AC_SUBST(JULIA_CFLAGS)
 AC_SUBST(JULIA_LDFLAGS)
+AC_SUBST(JULIA_LDLIBS)
 
 FINAL_MESSAGES="\nConfigured OMParser.jl successfully using the following options: []"
 
@@ -106,13 +107,21 @@ AS_IF([! $JULIA $JULIACONFIG --cflags], [
 JULIA_CFLAGS=`$JULIA $JULIACONFIG --cflags`
 AC_MSG_RESULT([$JULIA_CFLAGS])
 
-AC_MSG_CHECKING([running julia julia-config.jl --ldflags --ldlibs])
-AS_IF([! $JULIA $JULIACONFIG --ldflags --ldlibs], [
+AC_MSG_CHECKING([running julia julia-config.jl --ldflags])
+AS_IF([! $JULIA $JULIACONFIG --ldflags], [
   AC_MSG_RESULT([no])
-  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldflags --ldlibs successfuly])
+  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldflags successfuly])
 ], [])
-JULIA_LDFLAGS=`$JULIA $JULIACONFIG --ldflags --ldlibs`
+JULIA_LDFLAGS=`$JULIA $JULIACONFIG --ldflags`
 AC_MSG_RESULT([$JULIA_LDFLAGS])
+
+AC_MSG_CHECKING([running julia julia-config.jl --ldlibs])
+AS_IF([! $JULIA $JULIACONFIG --ldlibs], [
+  AC_MSG_RESULT([no])
+  AC_MSG_ERROR([cannot run $JULIA $JULIACONFIG --ldlibs successfuly])
+], [])
+JULIA_LDLIBS=`$JULIA $JULIACONFIG --ldlibs`
+AC_MSG_RESULT([$JULIA_LDLIBS])
 
 AC_ARG_WITH(msys, [  --with-msys[=no]              Point to an msys installation, to setup CPPFLAGS, etc automatically.],
   [
