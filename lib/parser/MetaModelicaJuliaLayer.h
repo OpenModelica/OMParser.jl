@@ -56,6 +56,7 @@ static inline jl_value_t* SourceInfo__SOURCEINFO(jl_value_t* fileName, jl_value_
 #define mmc_mk_none() jl_nothing
 #define mmc_mk_some(X) jl_call1(omc_jl_some, X)
 #define listReverseInPlace(X) jl_call1(omc_jl_listReverse, X)
+#define listReverse(X) jl_call1(omc_jl_listReverse, X)
 #define listEmpty(X) (jl_true == jl_call1(omc_jl_listEmpty, (X)))
 #define optionNone(X) jl_is_nothing(X)
 

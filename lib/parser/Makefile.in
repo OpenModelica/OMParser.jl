@@ -4,7 +4,9 @@ CC=@CC@
 CXX=@CXX@
 CFLAGS=@CFLAGS@ -Wall @EXTRA_CFLAGS_GENERATED_CODE@
 CPPFLAGS=@CPPFLAGS@ $(RMLINC) -I. -I$(ANTLR) -I$(ANTLR)/include -I../3rdParty/gc/include $(BUILDINC)
+MINGW_EXTRA_LDFLAGS=@MINGW_EXTRA_LDFLAGS@
 OMC=../build/bin/omc
+STAEXT=@STAEXT@
 SHREXT=@SHREXT@
 DLLEXT=@DLLEXT@
 ifeq (x86_64,@target_cpu@)
@@ -20,7 +22,8 @@ endif
 host=--host=@host@
 host_short=@host_short@
 LIB_OMC=lib/@host_short@
-ANTLR_LIB=libomantlr3@SHREXT@
+ANTLR_LIB_STATIC=libomantlr3@STAEXT@
+ANTLR_LIB_SHARED=libomantlr3@SHREXT@
 include Makefile.common
 LDFLAGS=@RPATH@
 

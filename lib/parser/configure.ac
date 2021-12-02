@@ -17,6 +17,7 @@ AC_SUBST(MODELICA_SPEC_PLATFORM)
 AC_SUBST(OPENMODELICA_SPEC_PLATFORM)
 AC_SUBST(MAKE)
 AC_SUBST(SHREXT)
+AC_SUBST(STAEXT)
 AC_SUBST(LINK)
 AC_SUBST(RPATH)
 AC_SUBST(WITH_UUID)
@@ -25,6 +26,7 @@ AC_SUBST(AR)
 AC_SUBST(AR_SH)
 AC_SUBST(OMENCRYPTION)
 AC_SUBST(BSTATIC)
+AC_SUBST(MINGW_EXTRA_LDFLAGS)
 
 FINAL_MESSAGES="\nConfigured OMParser.jl successfully using the following options: []"
 
@@ -329,6 +331,7 @@ AC_SUBST(DLLEXT)
 AC_SUBST(CONFIG_OS)
 if test "$DARWIN" = "1"; then
   EXE=""
+  STAEXT=".a"
   SHREXT=".dylib"
   DLLEXT=".dylib"
   LIBGC="$OMBUILDDIR/lib/$host_short/omc/libomcgc.a"
@@ -365,6 +368,7 @@ if test "$DARWIN" = "1"; then
 elif echo "$host" | grep -iq "mingw"; then
   EXE=".exe"
   # Yes, we build static libs on Windows, so the "shared" extension is .a
+  STAEXT=".a"
   SHREXT=".dll"
   DLLEXT=".dll"
   LIBGC="$OMBUILDDIR/lib/$host_short/omc/libomcgc.a"
@@ -400,6 +404,7 @@ elif echo "$host" | grep -iq "mingw"; then
   CONFIG_OS=Windows_NT
 else
   EXE=""
+  STAEXT=".a"
   SHREXT=".so"
   DLLEXT=".so"
   LIBGC="$OMBUILDDIR/lib/$host_short/omc/libomcgc.so"
@@ -482,6 +487,8 @@ CXXFLAGS="$CFLAGS $CXXFLAGS -Werror"
 AC_LANG_PUSH([C++])
 AC_TRY_LINK([], [], [CXXFLAGS="$CFLAGS $OLD_CXXFLAGS"], [CXXFLAGS="$OLD_CXXFLAGS"])
 AC_LANG_POP([C++])
+
+MINGW_EXTRA_LDFLAGS="-Wl,-Bstatic -lwinpthread -Wl,-Bdynamic"
 
 date=`date "+%Y-%m-%d %H:%M:%S"`
 

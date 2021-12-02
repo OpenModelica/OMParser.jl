@@ -160,21 +160,31 @@ goto rule ## func ## Ex; }}
   #define GlobalScript__IEXP(X, Y) NULL
   #define GlobalScript__ISTMTS(X, Y) NULL
 
+  #if !defined(JL_GC_PUSH7)
   #define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                      \
     void *__gc_stkf[] = {(void*)15, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+  #endif
+  #if !defined(JL_GC_PUSH8)
   #define JL_GC_PUSH8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)                      \
     void *__gc_stkf[] = {(void*)17, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+  #endif
+  #if !defined(JL_GC_PUSH9)
   #define JL_GC_PUSH9(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)                      \
     void *__gc_stkf[] = {(void*)19, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+  #endif
+  #if !defined(JL_GC_PUSH10)
   #define JL_GC_PUSH10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)                      \
     void *__gc_stkf[] = {(void*)21, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+  #endif
+  #if !defined(JL_GC_PUSH11)
   #define JL_GC_PUSH11(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)                      \
     void *__gc_stkf[] = {(void*)23, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+  #endif
 
   #define OM_PUSHZ1(A) (A) = NULL; JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
   #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;

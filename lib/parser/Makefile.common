@@ -19,15 +19,16 @@ all: $(BUILDDIR) install
 
 $(BUILDDIR): 
 	mkdir -p $@
+	mkdir -p $(BUILDDIR)/include/$(host_short)/antlr3/
+	mkdir -p $(BUILDDIR)/$(LIB_OMC)/
 
-install: $(BUILDDIR) $(ANTLR_LIB) libomparse-julia.a libomparse-julia$(SHREXT)
-	mkdir -p $(BUILDDIR)/include/$(host_short)/antlr3
+install: $(BUILDDIR) $(ANTLR_LIB_STATIC) $(ANTLR_LIB_SHARED) libomparse-julia.a libomparse-julia$(SHREXT)
 	cp $(ANTLR)/antlr3config.h $(ANTLR)/include/*.h $(BUILDDIR)/include/$(host_short)/antlr3
-	cp $(ANTLR_LIB) libomparse-julia.a libomparse-julia$(SHREXT) $(BUILDDIR)/$(LIB_OMC)/
+	cp $(ANTLR_LIB_STATIC) $(ANTLR_LIB_SHARED) libomparse-julia.a libomparse-julia$(SHREXT) $(BUILDDIR)/$(LIB_OMC)/
 
 $(ANTLR)/antlr3config.h: $(ANTLR)/antlr3config.h.in $(ANTLR)/configure
 	(cd $(ANTLR) && ./configure $(ANTLR64) $(ANTLRDEBUG) $(host) CC="$(CC)" CXX="$(CXX)" LDFLAGS="" CFLAGS="$(CFLAGS)" CPPFLAGS="")
-libomantlr3.a: $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
+$(ANTLR_LIB_STATIC): $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
 	# build the library
 	$(CC) ${CFLAGS} ${CPPFLAGS} -c $(ANTLR)/src/*.c -I$(ANTLR)/include -I$(ANTLR)
 	rm -f $@
@@ -35,12 +36,10 @@ libomantlr3.a: $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
 	ranlib $@
 	rm -f antlr3*.o
 
-ifneq ($(SHREXT),.a)
-libomantlr3$(SHREXT): $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
+$(ANTLR_LIB_SHARED): $(ANTLR)/src/*.c $(ANTLR)/include/*.h $(ANTLR)/antlr3config.h
 	# build the library
-	$(CC) -shared -o $@ ${LDFLAGS} ${CFLAGS} ${CPPFLAGS} -DANTLR3_NODEBUGGER $(ANTLR)/src/*.c -I$(ANTLR)/include -I$(ANTLR)
+	$(CC) -shared -o $@ ${MINGW_EXTRA_LDFLAGS} ${LDFLAGS} ${CFLAGS} ${CPPFLAGS} -DANTLR3_NODEBUGGER $(ANTLR)/src/*.c -I$(ANTLR)/include -I$(ANTLR)
 	test ! `uname` = Darwin || install_name_tool -id "@rpath/$@" $@
-endif
 
 HFILES = \
   ModelicaParser.h \
@@ -75,7 +74,7 @@ ModelicaParser.o: ModelicaParser.c ModelicaParser.h ModelicaParserCommon.h $(OMB
 	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) -I../Compiler
 
 libomparse-julia$(SHREXT): MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o Modelica_3_Lexer_BaseModelica_Lexer.jl.o ModelicaParser.jl.o OpenModelicaJuliaHeader.o libomantlr3.a
-	$(CC) -shared -o $@ $^ `eval echo \`julia-config.jl --ldflags --ldlibs\`` libomantlr3.a
+	$(CC) -shared -o $@ $^ ${MINGW_EXTRA_LDFLAGS} `eval echo \`julia-config.jl --ldflags --ldlibs\`` libomantlr3.a
 
 libomparse-julia.a: MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o Modelica_3_Lexer_BaseModelica_Lexer.jl.o ModelicaParser.jl.o OpenModelicaJuliaHeader.o
 	rm -f $@
