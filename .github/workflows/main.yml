@@ -10,12 +10,15 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-
+    name: install prerequisites
     steps:
     - uses: actions/checkout@v2
-    - name: autoconf
-      run: cd lib/parser && autoconf
-    - name: configure
-      run: cd lib/parser && ./configure
-    - name: make
-      run: cd lib/parser && make
+    - name: setup julia environment
+      uses: julia-actions/setup-julia@1.7-nightly
+    - name: configure and build
+      run: |
+        cd lib/parser 
+        autoconf
+        ./configure
+        make
+        
