@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: setup julia environment
-      uses: julia-actions/setup-julia@1.7.0
+      uses: julia-actions/setup-julia@v1.7.0
     - name: configure and build
       run: |
         cd lib/parser 
