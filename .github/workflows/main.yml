@@ -20,10 +20,12 @@ jobs:
       uses: julia-actions/setup-julia@v1
       with:
         version: "1.7.0"
+    - name: setup msys2 environment
     - uses: msys2/setup-msys2@v2
       with:
         update: false
         install: base-devel mingw-w64-x86_64-toolchain
+        platform-check-severity: warn
     - name: configure the library and build
       run: |
         cd lib/parser 
