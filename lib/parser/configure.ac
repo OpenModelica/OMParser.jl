@@ -1,7 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.63])
-AC_INIT([OMCompiler],[dev],[https://trac.openmodelica.org/OpenModelica],[openmodelica],[https://openmodelica.org])
+# AC_PREREQ([2.71])
+AC_INIT([OMParser.jl],[dev],[https://trac.openmodelica.org/OpenModelica],[openmodelica],[https://openmodelica.org])
+AC_CONFIG_AUX_DIR(common)
 AC_SUBST(date)
 AC_SUBST(host_short)
 AC_SUBST(omc_antlr_jar)
@@ -139,7 +140,7 @@ AC_ARG_WITH(msys, [  --with-msys[=no]              Point to an msys installation
 CFLAGS_BEFORE="$CFLAGS"
 CFLAGS="$CFLAGS -Werror"
 AC_MSG_CHECKING([if -Werror works])
-AC_TRY_LINK([void abc() {}], [abc();], [AC_MSG_RESULT([ok])], [AC_MSG_ERROR([failed (check your CFLAGS)])])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[void abc() {}]], [[abc();]])],[AC_MSG_RESULT([ok])],[AC_MSG_ERROR([failed (check your CFLAGS)])])
 CFLAGS="$CFLAGS_BEFORE"
 
 dnl Disables the default CFLAGS="-g -O2"
@@ -150,7 +151,7 @@ else
 CFLAGS_BEFORE="$CFLAGS"
 CFLAGS="-O3 -march=native"
 AC_MSG_CHECKING([looking for -march=native])
-AC_TRY_LINK([void abc() {}], [abc();], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]);CFLAGS="-O3"])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[void abc() {}]], [[abc();]])],[AC_MSG_RESULT([yes])],[AC_MSG_RESULT([no]);CFLAGS="-O3"])
 fi
 fi
 
@@ -158,7 +159,7 @@ LDFLAGS_BEFORE="$LDFLAGS"
 LIBS_BEFORE="$LIBS"
 LDFLAGS="$LDFLAGS -Wl,--no-undefined"
 AC_MSG_CHECKING([looking for --no-undefined])
-AC_TRY_LINK([void abc() {}], [abc();], [AC_MSG_RESULT([yes]);LD_NOUNDEFINED=" -Wl,--no-undefined"], [AC_MSG_RESULT([no])])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[void abc() {}]], [[abc();]])],[AC_MSG_RESULT([yes]);LD_NOUNDEFINED=" -Wl,--no-undefined"],[AC_MSG_RESULT([no])])
 LDFLAGS="$LDFLAGS_BEFORE"
 LIBS="$LIBS_BEFORE"
 
@@ -184,7 +185,7 @@ AC_MSG_CHECKING([for flags to append to CFLAGS ($TRY_FLAGS)])
 for flag in $TRY_FLAGS; do
   OLD_CFLAGS="$CFLAGS"
   CFLAGS="$RUNTIMECFLAGS $flag -Werror"
-  AC_TRY_LINK([], [return 0;], [CFLAGS="$OLD_CFLAGS $flag"],[CFLAGS="$OLD_CFLAGS"])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[CFLAGS="$OLD_CFLAGS $flag"],[CFLAGS="$OLD_CFLAGS"])
 done
 AC_MSG_RESULT([$CFLAGS])
 
@@ -192,21 +193,21 @@ AC_MSG_CHECKING([for flags to append to LDFLAGS ($TRY_FLAGS_LD)])
 for flag in $TRY_FLAGS_LD; do
   OLD_LDFLAGS="$LDFLAGS"
   LDFLAGS="$flag -Werror"
-  AC_TRY_LINK([], [return 0;], [LDFLAGS="$OLD_LDFLAGS $flag"],[LDFLAGS="$OLD_LDFLAGS"])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[LDFLAGS="$OLD_LDFLAGS $flag"],[LDFLAGS="$OLD_LDFLAGS"])
 done
 AC_MSG_RESULT([$LDFLAGS])
 
 OLD_CFLAGS="$CFLAGS"
 for flag in -Wno-parentheses-equality -Wno-unused-variable; do
   CFLAGS="$RUNTIMECFLAGS $flag -Werror"
-  AC_TRY_LINK([], [return 0;], [
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[
     CHECK_C_ERRORS="$CHECK_C_ERRORS $flag"
     EXTRA_CFLAGS_GENERATED_CODE="$EXTRA_CFLAGS_GENERATED_CODE $flag"
   ],[])
 done
 for flag in -Werror=implicit-function-declaration -Werror=incompatible-pointer-types; do
   CFLAGS="$RUNTIMECFLAGS $flag -Werror"
-  AC_TRY_LINK([], [return 0;], [
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[
     CHECK_C_ERRORS="$CHECK_C_ERRORS $flag"
     EXTRA_CFLAGS_GENERATED_CODE="$EXTRA_CFLAGS_GENERATED_CODE $flag"
   ],[])
@@ -226,7 +227,7 @@ if echo $CFLAGS | grep -q -- -fPIC; then
 else
   CFLAGS_BEFORE="$CFLAGS"
   CFLAGS="$CFLAGS -fPIC -Werror"
-  AC_TRY_LINK([void abc() {}], [abc();], [AC_MSG_RESULT([adding -fPIC]); CFLAGS="$CFLAGS_BEFORE -fPIC"; FPIC="-fPIC"], [AC_MSG_RESULT([does not need -fPIC]); CFLAGS="$CFLAGS_BEFORE"])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[void abc() {}]], [[abc();]])],[AC_MSG_RESULT([adding -fPIC]); CFLAGS="$CFLAGS_BEFORE -fPIC"; FPIC="-fPIC"],[AC_MSG_RESULT([does not need -fPIC]); CFLAGS="$CFLAGS_BEFORE"])
 fi
 
 else
@@ -238,7 +239,7 @@ if echo $CFLAGS | grep -q -- -fPIC; then
 else
   CFLAGS_BEFORE="$CFLAGS"
   CFLAGS="$CFLAGS -fPIC -Werror"
-  AC_TRY_LINK([void abc() {}], [abc();], [AC_MSG_RESULT([adding -fPIC]); CFLAGS="$CFLAGS_BEFORE -fPIC"; FPIC="-fPIC"], [AC_MSG_RESULT([does not need -fPIC]); CFLAGS="$CFLAGS_BEFORE"])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[void abc() {}]], [[abc();]])],[AC_MSG_RESULT([adding -fPIC]); CFLAGS="$CFLAGS_BEFORE -fPIC"; FPIC="-fPIC"],[AC_MSG_RESULT([does not need -fPIC]); CFLAGS="$CFLAGS_BEFORE"])
 fi
 
 fi
@@ -249,11 +250,7 @@ AC_LANG_PUSH([C++])
 OLD_CXXFLAGS=$CXXFLAGS
 for flag in -stdlib=libstdc++; do
   CXXFLAGS="$OLD_CXXFLAGS $flag"
-  AC_TRY_LINK(
-    [#include <regex>],
-    [int main() {return 0;}],
-    [LDFLAGS_LIBSTDCXX="$flag"],
-    [CXXFLAGS="$OLD_CXXFLAGS"])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <regex>]], [[int main() {return 0;}]])],[LDFLAGS_LIBSTDCXX="$flag"],[CXXFLAGS="$OLD_CXXFLAGS"])
 done
 AC_LANG_POP([C++])
 
@@ -268,7 +265,7 @@ dnl Simulations spin forever unless -msse2 -mfpmath=sse is set
 CFLAGS_BEFORE=$CFLAGS
 CFLAGS="-mfpmath=sse -Werror"
 AC_MSG_CHECKING([for floating point bugs])
-AC_TRY_LINK([int abc() {}], [abc();], [AC_MSG_RESULT([force SSE2]); FPMATHFORTRAN="-msse -mfpmath=sse"], [AC_MSG_RESULT([no]); FPMATHFORTRAN=-ffloat-store])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[int abc() {}]], [[abc();]])],[AC_MSG_RESULT([force SSE2]); FPMATHFORTRAN="-msse -mfpmath=sse"],[AC_MSG_RESULT([no]); FPMATHFORTRAN=-ffloat-store])
 CFLAGS=$CFLAGS_BEFORE
 
 fi # End x86-specific CFLAGS
@@ -285,7 +282,11 @@ if test ! "$DARWIN" = "1" && (! echo $host | grep -q mingw ); then
 fi
 
 dnl Checks for header files.
-AC_HEADER_STDC
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+#AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 
 AC_CHECK_HEADERS(sys/time.h, [], [AC_MSG_ERROR(Missing header file sys/time.h)])
 # AC_CHECK_HEADERS(sqlite3.h, [], [AC_MSG_ERROR(Missing header file sqlite3.h)])
@@ -311,17 +312,17 @@ fi
 AC_MSG_CHECKING([runtime compiler])
 if test -z "$RUNTIMECFLAGS"; then
   CFLAGS="$FPIC -Werror"
-  AC_TRY_LINK([], [return 0;], [AC_MSG_RESULT($CC ok);],[AC_MSG_ERROR($CC failed)])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[AC_MSG_RESULT($CC ok);],[AC_MSG_ERROR($CC failed)])
   CFLAGS="$FPIC"
   AC_MSG_CHECKING([runtime compiler CFLAGS])
   RUNTIMECFLAGS="$FPIC"
   for flag in -falign-functions -mfpmath=sse -fno-dollars-in-identifiers -Wno-parentheses-equality; do
     CFLAGS="$FPIC $flag -Werror"
-    AC_TRY_LINK([], [return 0;], [RUNTIMECFLAGS="$RUNTIMECFLAGS $flag"],[])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[RUNTIMECFLAGS="$RUNTIMECFLAGS $flag"],[])
   done
 else
   CFLAGS="$RUNTIMECFLAGS $FPIC -Werror"
-  AC_TRY_LINK([], [return 0;], [RUNTIMECFLAGS="$RUNTIMECFLAGS $FPIC"],[AC_MSG_ERROR([$CC $CFLAGS -Werror failed])])
+  AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[RUNTIMECFLAGS="$RUNTIMECFLAGS $FPIC"],[AC_MSG_ERROR([$CC $CFLAGS -Werror failed])])
 fi
 AC_MSG_RESULT([$RUNTIMECFLAGS])
 
@@ -364,7 +365,7 @@ LIBS=""
 
 OLD_LDFLAGS="$LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,-Bstatic  -Wl,-Bdynamic"
-AC_TRY_LINK([], [return 0;], [BSTATIC="true"],[BSTATIC="false"; AC_MSG_RESULT(["Don't know the flags to force static linking"])])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[BSTATIC="true"],[BSTATIC="false"; AC_MSG_RESULT(["Don't know the flags to force static linking"])])
 LDFLAGS="$OLD_LDFLAGS"
 
 MINGW_EXTRA_LDFLAGS=""
@@ -527,7 +528,7 @@ CFLAGS="$CFLAGS"
 OLD_CXXFLAGS="$CXXFLAGS"
 CXXFLAGS="$CFLAGS $CXXFLAGS -Werror"
 AC_LANG_PUSH([C++])
-AC_TRY_LINK([], [], [CXXFLAGS="$CFLAGS $OLD_CXXFLAGS"], [CXXFLAGS="$OLD_CXXFLAGS"])
+AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[]])],[CXXFLAGS="$CFLAGS $OLD_CXXFLAGS"],[CXXFLAGS="$OLD_CXXFLAGS"])
 AC_LANG_POP([C++])
 
 date=`date "+%Y-%m-%d %H:%M:%S"`
@@ -536,6 +537,7 @@ CONFIGURE_ARGS="$ac_configure_args"
 
 GENERATED_AUTOCONF_FILES="Makefile"
 
-AC_OUTPUT(${GENERATED_AUTOCONF_FILES})
+AC_CONFIG_FILES([${GENERATED_AUTOCONF_FILES}])
+AC_OUTPUT
 
 echo -e "$FINAL_MESSAGES"
