@@ -21,8 +21,9 @@ jobs:
       with:
         version: "1.7.0"
     - name: setup msys2 environment
-    - uses: msys2/setup-msys2@v2
+      uses: msys2/setup-msys2@v2
       with:
+        update: false
         platform-check-severity: warn
         install: base-devel mingw-w64-x86_64-toolchain
     - name: configure the library and build
