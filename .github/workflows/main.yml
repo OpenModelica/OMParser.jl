@@ -23,9 +23,8 @@ jobs:
     - name: setup msys2 environment
     - uses: msys2/setup-msys2@v2
       with:
-        update: false
-        install: base-devel mingw-w64-x86_64-toolchain
         platform-check-severity: warn
+        install: base-devel mingw-w64-x86_64-toolchain
     - name: configure the library and build
       run: |
         cd lib/parser 
