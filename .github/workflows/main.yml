@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Build CI
 
 on:
   push:
@@ -9,15 +9,22 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
-    name: install prerequisites
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+    name: building OMParse.jl/lib/parser
     steps:
     - uses: actions/checkout@v2
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
         version: "1.7.0"
-    - name: configure and build
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: false
+        install: base-devel mingw-w64-x86_64-toolchain
+    - name: configure the library and build
       run: |
         cd lib/parser 
         autoconf
