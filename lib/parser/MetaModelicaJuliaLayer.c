@@ -19,8 +19,8 @@ void OpenModelica_initMetaModelicaJuliaLayer()
   jl_eval_string("using ImmutableList");
   jl_module_t *ImmutableList = (jl_module_t*)jl_eval_string("ImmutableList");
   jl_module_t *ListDefModule = (jl_module_t*)jl_eval_string("ImmutableList.ListDef");
-  jl_eval_string("using OpenModelicaParser");
-  jl_module_t *parserModule = (jl_module_t*)jl_eval_string("OpenModelicaParser");
+  jl_eval_string("using OMParser");
+  jl_module_t *parserModule = (jl_module_t*)jl_eval_string("OMParser");
 
   if (!MetaModelicaModule)
   {
