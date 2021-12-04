@@ -32,6 +32,7 @@ jobs:
         install: base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
     - name: Set git to use LF
+      if: contains(matrix.os, 'windows')
       run: |
         git config --system core.autocrlf false
         git config --system core.eol lf
