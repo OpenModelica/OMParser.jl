@@ -8,10 +8,16 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.sys.os }}
     strategy:
       matrix:
-        os: [windows-latest, ubuntu-latest, macOS-latest]
+        sys:
+          - { os: windows-latest, shell: 'msys2 {0}' }
+          - { os: ubuntu-latest,  shell: bash  }
+          - { os: macos-latest,   shell: bash  }
+    defaults:
+      run:
+        shell: ${{ matrix.sys.shell }}
     name: building OMParse.jl/lib/parser
     steps:
     - uses: actions/checkout@v2
