@@ -1,2 +1,8 @@
 text=auto
 text eol=lf
+*.g text
+*.h text
+*.c text
+*.m4 text
+*.sh text
+.gitattributes text

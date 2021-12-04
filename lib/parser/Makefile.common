@@ -87,8 +87,6 @@ OpenModelicaJuliaHeader.h: $(MO_FILES) GenerateJLHeader.mos
 	$(BUILDDIR)/bin -g=MetaModelica GenerateJLHeader.mos > $@.log || (cat $@.log && false)
 	@mv $@.new $@
 Parser_jl.o: Parser_jl.c $(HFILES) lookupTokenName.c OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
-	# run the preprocessor so I can see what the problem is
-	$(CC) -E $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
 	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
 Modelica_3_Lexer.jl.o: Modelica_3_Lexer.c Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
 	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
