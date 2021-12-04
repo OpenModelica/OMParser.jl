@@ -1,6 +1,6 @@
 module OMParser
 
-import Absyn, ImmutableList
+import Absyn, MetaModelica, ImmutableList
 using MetaModelica
 
 #import Settings
@@ -10,8 +10,9 @@ struct ParseError
 end
 
 function isDerCref(exp::Absyn.Exp)::Bool
+  @info "London calling"
   @match exp begin
-    Absyn.CALL(Absyn.CREF_IDENT("der",  nil()), Absyn.FUNCTIONARGS(Absyn.CREF(__) <|  nil(),  nil()))  => true
+    Absyn.CALL(Absyn.CREF_IDENT("der",  nil()), Absyn.FUNCTIONARGS(Absyn.CREF(__) <|  nil(),  nil()), nil())  => true
     _ => false
   end
 end

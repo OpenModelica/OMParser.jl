@@ -236,7 +236,7 @@ function generateJL_Asserts(allDataTypes, moduleName)
       #= Get qualified path for basic datatype =#
       local baseTypeStr = components[2]        
       local assertStr1 = "assert(($qualifiedName = jl_get_function($(moduleName), \"$(baseTypeStr)\")));"
-      local assertStr2 = "assert(($qualifiedName = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
+      local assertStr2 = "assert(($(qualifiedName)_type = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
       println(buffer, assertStr1)
       println(buffer, assertStr2)
       #=TODO is the double underscore important?=#
