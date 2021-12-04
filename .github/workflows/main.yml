@@ -20,11 +20,6 @@ jobs:
         shell: ${{ matrix.sys.shell }}
     name: building OMParser.jl/lib/parser
     steps:
-    - name: Set git to use LF
-      run: |
-        git config --global core.autocrlf false
-        git config --global core.eol lf
-    - uses: actions/checkout@v2
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
@@ -36,6 +31,11 @@ jobs:
         platform-check-severity: warn
         install: base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
+    - name: Set git to use LF
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
+    - uses: actions/checkout@v2
     - name: configure the library and build
       run: |
         which gcc
