@@ -13,13 +13,17 @@ jobs:
       matrix:
         sys:
           - { os: windows-latest, shell: 'msys2 {0}' }
-          #- { os: ubuntu-latest,  shell: bash  }
-          #- { os: macos-latest,   shell: bash  }
+          - { os: ubuntu-latest,  shell: bash  }
+          - { os: macos-latest,   shell: bash  }
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
     name: building OMParser.jl/lib/parser
     steps:
+    - name: Set git to use LF
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.eol lf
     - uses: actions/checkout@v2
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
