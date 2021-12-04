@@ -42,15 +42,15 @@
 
 #define bool int
 
-#include <Modelica_3_Lexer.h>
-#include <ModelicaParser.h>
-#include <antlr3intstream.h>
-#include <antlr3config.h>
-
 #include <julia.h>
 
 #include "MetaModelicaJuliaLayer.h"
 #include "OpenModelicaJuliaHeader.h"
+
+#include <Modelica_3_Lexer.h>
+#include <ModelicaParser.h>
+#include <antlr3intstream.h>
+#include <antlr3config.h>
 
 pthread_once_t parser_once_create_key = PTHREAD_ONCE_INIT;
 pthread_key_t modelicaParserKey;
