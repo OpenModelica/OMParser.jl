@@ -31,6 +31,7 @@ jobs:
         update: false
         platform-check-severity: warn
         install: base-devel mingw-w64-x86_64-toolchain
+        path-type: inherit # to find julia!
     - name: configure the library and build
       run: |
         cd lib/parser 
@@ -38,8 +39,8 @@ jobs:
         ./configure
         make
         cd ../build/lib
-        ls -lah
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
+        ls -lah
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
