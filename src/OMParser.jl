@@ -1,12 +1,13 @@
 module OMParser
 
-import Absyn, MetaModelica, ImmutableList
+import Absyn, ImmutableList
 using MetaModelica
 
 #import Settings
-INSTALLATION_DIRECTORY_PATH = realpath(realpath(Base.find_package("OMParser") * "./../.."))
+INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package("OMParser")) * "/../"))
 
-struct ParseError end
+struct ParseError
+end
 
 function isDerCref(exp::Absyn.Exp)::Bool
   @match exp begin
@@ -17,14 +18,17 @@ end
 
 const _libpath = if Sys.iswindows()
   local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "ext", "libomparse-julia.dll")
+  throw("Not fixed yet...")
+  #  joinpath(instDir, "lib", "ext", "libomparse-julia.dll")
 else
   local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "ext", "libomparse-julia.so")
+  joinpath(instDir, "lib", "build","lib", "x86_64-linux-gnu", "libomparse-julia.so")
 end
 
 function parseFile(fileName::String, acceptedGram::Int64 = 1)::Absyn.Program
-  local res = ccall((:parseFile, _libpath), Any, (String,Int64), fileName, acceptedGram)
+  @info _libpath
+  @info fileName
+  local res = ccall((:parseFile, _libpath), Any, (String, Int64), fileName, acceptedGram)
   if res == nothing
     throw(ParseError())
   end
