@@ -83,8 +83,8 @@ libomparse-julia.a: MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o M
 	ranlib $@
 
 # adrpo: TODO John: fix a new generator in Julia for the OpenModelicaJuliaHeader.h file
-OpenModelicaJuliaHeader.h: $(MO_FILES) GenerateJLHeader.mos
-	$(BUILDDIR)/bin -g=MetaModelica GenerateJLHeader.mos > $@.log || (cat $@.log && false)
+OpenModelicaJuliaHeader.h: GenerateJLHeader.jl
+	julia GenerateJLHeader.jl > $@.log || (cat $@.log && false)
 	@mv $@.new $@
 Parser_jl.o: Parser_jl.c $(HFILES) lookupTokenName.c OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
 	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1

@@ -30,8 +30,8 @@
  */
 =#
 
-using Revise
 import Absyn
+using InteractiveUtils
 
 COPYRIGHT_HEADER = "/*
  * This file is part of OpenModelica.
@@ -86,6 +86,14 @@ function getTypes(m)
   return types
 end
 
+"""
+  Returns the base name as a string
+"""
+function getBaseNameAsStr(baseType)
+  local components = split(string(baseType), ".")
+  return components[2]
+end
+
 function getQualifiedName(components::Vector)
   local buffer = IOBuffer()
   for i in 1:length(components)
@@ -104,14 +112,12 @@ end
 function getSuperTypePath(baseType::DataType)
   @assert !isabstracttype(baseType)
   local components = split(string(baseType), ".")
-  @info components
   local basePart = last(components) #= Get the concrete base type as a string=#
   components = split(string(supertype(baseType)), ".") #= Get all components for the supertype=#
   #= Get the qualified name for the supertype =#
   local supertypeQualifiedNameStr = getQualifiedName(components)
   local buffer = IOBuffer()
   print(buffer, supertypeQualifiedNameStr)
-  @info basePart
   #= Add the base name to this path=#
   print(buffer, "_" * basePart)
   return String(take!(buffer))
@@ -146,7 +152,7 @@ function programExternalHeaderJulia(allDataTypes, moduleName)
   println(buffer, "void OpenModelica_initAbsynReferences();")
   println(buffer, "#endif")
   #= Generate the extern definitions =#
-  allSuperTypes = filter(isabstracttype, allDataTypes)
+  allSuperTypes = unique(filter(isabstracttype, allDataTypes))
   #= Get the super types so we can get a nice grouping =#
   local externalDeclarations = generateExternalDeclarations(allSuperTypes)
   println(buffer, externalDeclarations)
@@ -171,7 +177,6 @@ function generateJL_Values(allDataTypes)
       local components = split(string(dataType), ".")
       local qualifiedName = getQualifiedName(components)
       local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
-      @info qualifiedName
       local typeStr = string("jl_value_t *", qualifiedName, " = ", "NULL;")
       println(buffer, typeStr)
     end
@@ -186,9 +191,8 @@ function generateJL_Values(allDataTypes)
       end
       local qualifiedName = getSuperTypePath(dataType)
       local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
-      @info qualifiedName
       local funcStr = string("jl_function_t *", qualifiedName, " = ", "NULL;")
-      local valueStr = string("jl_value_t *", qualifiedName, " = ", "NULL;")
+      local valueStr = string("jl_value_t *", qualifiedName, "_type", " = ", "NULL;")
       println(buffer, funcStr)
       println(buffer, valueStr)
     end
@@ -201,9 +205,9 @@ function generateJL_Asserts(allDataTypes, moduleName)
   local buffer = IOBuffer()
   local preamble = "
       jl_eval_string(\"using $(moduleName)\");
-      jl_module_t* <%c.name%> = (jl_module_t *) jl_eval_string(\"$(moduleName)\");
+      jl_module_t* $(moduleName) = (jl_module_t *) jl_eval_string(\"$(moduleName)\");
       if (!$(moduleName)) {
-        fprintf(stderr, \"module $(moduleName) not loaded, load it via \"using $(moduleName)\".);
+        fprintf(stderr, \"module $(moduleName) not loaded, load it via using $(moduleName).\");
         fflush(NULL);
       }
       assert(jl_is_module($(moduleName)));"
@@ -215,8 +219,7 @@ function generateJL_Asserts(allDataTypes, moduleName)
       local components = split(string(dataType), ".")
       local qualifiedName = getQualifiedName(components)
       local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
-      @info qualifiedName
-      local assertStr = "assert(($qualifiedName = jl_get_global($(moduleName), jl_symbol(\" $(baseTypeStr) \")));"
+      local assertStr = "assert(($qualifiedName = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
       println(buffer, assertStr)
     end
   end
@@ -232,8 +235,8 @@ function generateJL_Asserts(allDataTypes, moduleName)
       local qualifiedName = getSuperTypePath(dataType)
       #= Get qualified path for basic datatype =#
       local baseTypeStr = components[2]        
-      local assertStr1 = "assert(($qualifiedName = jl_get_function($(moduleName), jl_symbol(\" $(baseTypeStr) \")));"
-      local assertStr2 = "assert(($qualifiedName = jl_get_global($(moduleName), jl_symbol(\" $(baseTypeStr) \")));"
+      local assertStr1 = "assert(($qualifiedName = jl_get_function($(moduleName), \"$(baseTypeStr)\")));"
+      local assertStr2 = "assert(($qualifiedName = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
       println(buffer, assertStr1)
       println(buffer, assertStr2)
       #=TODO is the double underscore important?=#
@@ -262,7 +265,6 @@ function generateExternalDeclarations(allSuperTypes)
       continue
     end
     local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
-    @info qualifiedName
     local superTypeStr = string("extern jl_value_t *", qualifiedName, ";")
     println(buffer, "/* External declarations for the uniontype: " * string(superType) * "*/")
     println(buffer, superTypeStr)
@@ -278,14 +280,14 @@ function generateExternalDeclarations(allSuperTypes)
       #= Find out the amount of function arguments to create these types =#
       local fieldNames = fieldnames(subType)
       local fieldNameLength = length(fieldNames)
-      local fullName = string("Absyn__", baseTypeStr) #Why two underscores.. Ask Adrian about the scheme
+      local fullName = string("Absyn__", replace(getBaseNameAsStr(subType), "_" => "_5f"))
       if fieldNameLength  == 0
         println(buffer, "#define $(fullName) jl_call0($(qualifiedName))")
       elseif fieldNameLength <= 3
         local fieldNamesAsStrWithType = join(map((x) -> string("jl_value_t *", x), fieldNames), ", ")
         local fieldNamesAsStrWithoutType = join(map(string, fieldNames), ", ")
         local arguments = fieldNamesAsStrWithType
-        local staticFuncHeader = string("static inline jl_value_t *", "$(baseTypeStr)", "(", "$(arguments)", ")", " {")
+        local staticFuncHeader = string("static inline jl_value_t *", fullName, "(", "$(arguments)", ")", " {")
         local body = string("return ","jl_call", string(fieldNameLength), "(", qualifiedName, ", " ,fieldNamesAsStrWithoutType, ")", ";")
         local staticFuncEpilog = "}"
         println(buffer, staticFuncHeader)
@@ -295,9 +297,9 @@ function generateExternalDeclarations(allSuperTypes)
         local fieldNamesAsStrWithType = join(map((x) -> string("jl_value_t *", x), fieldNames), ", ")
         local arguments = fieldNamesAsStrWithType
         local fieldNamesAsStrWithoutType = join(map(string, fieldNames), ", ")
-        local staticFuncHeader = string("static inline jl_value_t *", "$(baseTypeStr)", "(", "$(arguments)", ")", " {")
+        local staticFuncHeader = string("static inline jl_value_t *", fullName, "(", "$(arguments)", ")", " {")
         local arrayDecl = "jl_value_t *values[$(fieldNameLength)] = {$(fieldNamesAsStrWithoutType)};"
-        local returnStmt = string("return ","jl_call", "(", qualifiedName, ", " ,"values", "$(fieldNameLength)" ,")", ";")
+        local returnStmt = string("return ","jl_call", "(", qualifiedName, ", " ,"values, ",  "$(fieldNameLength)" ,")", ";")
         local staticFuncEpilog = "}"
         println(buffer, staticFuncHeader)
         println(buffer, arrayDecl)
@@ -312,9 +314,9 @@ end
 
 
 #= Generate C-Code from the headers =#
-#= Split the types into base types and abstract types (supertypes) =#
-allDataTypes = getTypes(Absyn)
-#= fin =#
-
+allDataTypes =  unique(filter((x) -> x != String, getTypes(Absyn)))
 res = programExternalHeaderJulia(allDataTypes, "Absyn")
-println(res)
+#= Write to file =#
+ open("OpenModelicaJuliaHeader.h.new", "w") do io
+   write(io, res)
+ end;
