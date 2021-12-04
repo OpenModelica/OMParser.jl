@@ -43,12 +43,12 @@ jobs:
         cd lib/parser
         autoconf
         ./configure
-        make -k
+        make -k || true
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz * ../../parser
         mv ${{matrix.sys.os}}-library.tar.gz ${{github.workspace}}/.
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
-        name: parser library
+        name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
