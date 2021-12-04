@@ -49,6 +49,20 @@ scope omc{
   #include <winsock2.h>
   #endif
 
+  #include <stdlib.h>
+  #include <stdio.h>
+  #include <errno.h>
+  #include <time.h>
+  
+  #include "ModelicaParserCommon.h"
+  
+  typedef struct fileinfo_struct {
+    int line1;
+    int line2;
+    int offset1;
+    int offset2;
+  } fileinfo;
+  
   #define false 0
   #define true 1
   #define token_to_scon(tok) mmc_mk_scon((char*)tok->getText(tok)->chars)
@@ -66,20 +80,6 @@ __info->offset1 = _offset1; \
 __info->offset2 = _offset2; \
 EXCEPTION->custom = __info; \
 goto rule ## func ## Ex; }}
-
-  typedef struct fileinfo_struct {
-    int line1;
-    int line2;
-    int offset1;
-    int offset2;
-  } fileinfo;
-
-  #include <stdlib.h>
-  #include <stdio.h>
-  #include <errno.h>
-  #include <time.h>
-
-  #include "ModelicaParserCommon.h"
 
   #define make_redeclare_keywords(replaceable,redeclare) (((replaceable) && (redeclare)) ? Absyn__REDECLARE_5fREPLACEABLE : ((replaceable) ? Absyn__REPLACEABLE : ((redeclare) ? Absyn__REDECLARE : NULL)))
   #define make_inner_outer(i,o) (i && o ? Absyn__INNER_5fOUTER : i ? Absyn__INNER : o ? Absyn__OUTER : Absyn__NOT_5fINNER_5fOUTER)
