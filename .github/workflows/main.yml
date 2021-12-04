@@ -43,4 +43,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: parser library
-        path: lib/*.tar.gz
+        path: lib/${{matrix.sys.os}}-library.tar.gz
