@@ -40,9 +40,9 @@ jobs:
         make
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
-        ls -lah
+        mv ${{matrix.sys.os}}-library.tar.gz ${{github.workspace}}/.
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
         name: parser library
-        path: lib/parser/build/lib/${{matrix.sys.os}}-library.tar.gz
+        path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
