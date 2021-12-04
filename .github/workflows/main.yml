@@ -20,7 +20,6 @@ jobs:
         shell: ${{ matrix.sys.shell }}
     name: building OMParser.jl/lib/parser
     steps:
-    - uses: actions/checkout@v2
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
@@ -32,6 +31,12 @@ jobs:
         platform-check-severity: warn
         install: base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
+    - name: set git to use LF on Windows
+      if: contains(matrix.sys.os, 'windows')
+      run: |
+        git config --system core.autocrlf false
+        git config --system core.eol lf
+    - uses: actions/checkout@v2
     - name: configure the library and build
       run: |
         which gcc
@@ -42,9 +47,9 @@ jobs:
         make
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
-        mv ${{matrix.sys.os}}-library.tar.gz ${{github.workspace}}/.
+        mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
-        name: parser library
+        name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
