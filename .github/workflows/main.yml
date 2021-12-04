@@ -13,8 +13,8 @@ jobs:
       matrix:
         sys:
           - { os: windows-latest, shell: 'msys2 {0}' }
-          # - { os: ubuntu-latest,  shell: bash  }
-          # - { os: macos-latest,   shell: bash  }
+          - { os: ubuntu-latest,  shell: bash  }
+          - { os: macos-latest,   shell: bash  }
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
@@ -43,9 +43,9 @@ jobs:
         cd lib/parser
         autoconf
         ./configure
-        make -k || true
+        make
         cd ../build/lib
-        tar -czvf ${{matrix.sys.os}}-library.tar.gz * ../../parser
+        tar -czvf ${{matrix.sys.os}}-library.tar.gz *
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
     - name: upload library
       uses: actions/upload-artifact@v2
