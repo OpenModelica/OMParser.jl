@@ -19,19 +19,13 @@ end
 
 const _libpath = if Sys.iswindows()
   local instDir = INSTALLATION_DIRECTORY_PATH
-  @static if VERSION >= v"1.5.1"
-    joinpath(instDir, "lib", "ext", "libomparse-julia_v151.dll")
-  elseif VERSION >= v"1.4.0"
-    joinpath(instDir, "lib", "ext", "libomparse-julia_v140.dll")
-  else
-    joinpath(instDir, "lib", "ext", "libomparse-julia.dll")
-  end
+  joinpath(instDir, "lib", "build", "lib", "x86_64-mingw32", "libomparse-julia.dll")
 elseif Sys.islinux()
   local instDir = INSTALLATION_DIRECTORY_PATH
   joinpath(instDir, "lib", "build","lib", "x86_64-linux-gnu", "libomparse-julia.so")
 elseif Sys.isapple()
   local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "build","lib", "x86_64-linux-gnu", "libomparse-julia.dylib")
+  joinpath(instDir, "lib", "build","lib", "x86_64-darwin20.6.0", "libomparse-julia.dylib")
 else
   throw("Your system is not supported. Supported Systems are Linux, macOS and Windows.")
 end
