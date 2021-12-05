@@ -7,7 +7,9 @@ import OMParser
   try
     res = OMParser.parseFile("HelloWorld.mo")
     true
-  catch
+  catch err
+    @info("Test failed with the following error:")
+    @info "Error:" err
     false
   end
 end
@@ -16,7 +18,9 @@ end
   try
     res = OMParser.parseFile("Influenza.mo")
     true
-  catch
+  catch err
+    @info("Test failed with the following error:")
+    @info "Error:" err
     false
   end
 end
@@ -25,7 +29,9 @@ end
   try
     res = OMParser.parseFile("Casc12800.mo")
     true
-  catch
+  catch err
+    @info("Test failed with the following error:")
+    @info "Error:" err
     false
   end
 end
@@ -36,7 +42,9 @@ end
   try
     res = OMParser.parseFile("msl.mo")
     true
-  catch
+  catch err
+    @info("Test failed with the following error:")
+    @info "Error:" err
     false
   end
 end
