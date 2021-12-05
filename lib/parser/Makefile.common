@@ -6,11 +6,6 @@ ANTLR=../3rdParty/antlr/3.2/libantlr3c-3.2
 ANTLRJAR = $(ANTLR)/../tool/antlr-3.2.jar
 ANTLRCMD=java -cp $(ANTLRJAR) org.antlr.Tool -Xconversiontimeout 10000 -report
 
-# TODO John: make a dep on Absyn.jl files, no MetaModelica files should be needed!
-MO_FILES= # ../Compiler/FrontEnd/Absyn.mo ../Compiler/Script/GlobalScript.mo ../Compiler/FrontEnd/Values.mo ../Compiler/Util/Error.mo ../Compiler/Util/Util.mo ../Compiler/Util/FMI.mo
-ERROREXTH=errorext.h
-OMBOOTH=OpenModelicaBootstrappingHeader.h
-
 BUILDINC = -I../Compiler/runtime -I../SimulationRuntime/c/meta -I../SimulationRuntime/c/ -I../SimulationRuntime/c/meta/gc -I../SimulationRuntime/c/util
 
 .PHONY: all
@@ -65,13 +60,13 @@ Parser_omc.o
 
 OBJS = $(OBJS_BASE) ModelicaParser.o
 
-ParModelica_Lexer.o: ParModelica_Lexer.h ParModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-MetaModelica_Lexer.o: MetaModelica_Lexer.h MetaModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-Modelica_3_Lexer.o: Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-ParModelica_Lexer_BaseModelica_Lexer.o: ParModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-MetaModelica_Lexer_BaseModelica_Lexer.o: MetaModelica_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-Modelica_3_Lexer_BaseModelica_Lexer.o: Modelica_3_Lexer_BaseModelica_Lexer.h $(ERROREXTH) $(ANTLR)/antlr3config.h
-ModelicaParser.o: ModelicaParser.c ModelicaParser.h ModelicaParserCommon.h $(OMBOOTH) $(ERROREXTH) $(ANTLR)/antlr3config.h
+ParModelica_Lexer.o: ParModelica_Lexer.h ParModelica_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+MetaModelica_Lexer.o: MetaModelica_Lexer.h MetaModelica_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+Modelica_3_Lexer.o: Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+ParModelica_Lexer_BaseModelica_Lexer.o: ParModelica_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+MetaModelica_Lexer_BaseModelica_Lexer.o: MetaModelica_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+Modelica_3_Lexer_BaseModelica_Lexer.o: Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h
+ModelicaParser.o: ModelicaParser.c ModelicaParser.h ModelicaParserCommon.h $(ANTLR)/antlr3config.h
 	$(CC) -c -o $@ $< $(CFLAGS) $(CPPFLAGS) -I../Compiler
 
 libomparse-julia$(SHREXT): MetaModelicaJuliaLayer.o Parser_jl.o Modelica_3_Lexer.jl.o Modelica_3_Lexer_BaseModelica_Lexer.jl.o ModelicaParser.jl.o OpenModelicaJuliaHeader.o libomantlr3.a
@@ -87,17 +82,17 @@ OpenModelicaJuliaHeader.h: GenerateJLHeader.jl
 	$(JULIA_CMD) GenerateJLHeader.jl > $@.log || (cat $@.log && false)
 	@mv $@.new $@
 Parser_jl.o: Parser_jl.c $(HFILES) lookupTokenName.c OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 Modelica_3_Lexer.jl.o: Modelica_3_Lexer.c Modelica_3_Lexer.h Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 Modelica_3_Lexer_BaseModelica_Lexer.jl.o: Modelica_3_Lexer_BaseModelica_Lexer.c Modelica_3_Lexer_BaseModelica_Lexer.h $(ANTLR)/antlr3config.h OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 ModelicaParser.jl.o: ModelicaParser.c $(HFILES) OpenModelicaJuliaHeader.h MetaModelicaJuliaLayer.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 MetaModelicaJuliaLayer.o: MetaModelicaJuliaLayer.c MetaModelicaJuliaLayer.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 OpenModelicaJuliaHeader.o: OpenModelicaJuliaHeader.c OpenModelicaJuliaHeader.h
-	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I. -DOMJULIA=1
+	$(CC) -c -o $@ $< ${JULIA_CFLAGS} $(CFLAGS) -I$(ANTLR) -I$(ANTLR)/include -I.
 
 $(OBJS) : $(HFILES)
 
@@ -165,7 +160,7 @@ $(parmodelicagen) : ParModelica_Lexer.stamp
 	fi
 
 clean:
-	rm -rf $(BUILDDIR) Makefile config.* configure
+	rm -rf $(BUILDDIR) Makefile config.* configure 
 	rm -f *.o *.obj *.lib *.a *.so ModelicaParser.c ModelicaParser.h *Modelica*_Lexer.c *Modelica*_Lexer.h *.tokens *.stamp *.stamp.tmp
 	rm -f $(ANTLR)/antlr3config.h
 
