@@ -160,7 +160,7 @@ $(parmodelicagen) : ParModelica_Lexer.stamp
 	fi
 
 clean:
-	rm -rf $(BUILDDIR) Makefile config.* configure 
+	rm -rf $(BUILDDIR) Makefile config.* configure OpenModelicaJuliaHeader.h
 	rm -f *.o *.obj *.lib *.a *.so ModelicaParser.c ModelicaParser.h *Modelica*_Lexer.c *Modelica*_Lexer.h *.tokens *.stamp *.stamp.tmp
 	rm -f $(ANTLR)/antlr3config.h
 
