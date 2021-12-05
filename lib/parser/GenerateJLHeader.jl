@@ -30,6 +30,10 @@
  */
 =#
 
+#=
+Author: John Tinnerholm <john.tinnerholm@liu.se>
+=#
+
 using InteractiveUtils
 import Pkg
 #= Add the general registry if we do not have it.=#
@@ -73,6 +77,12 @@ COPYRIGHT_HEADER = "/*
  * See the full OSMC Public License conditions for more details.
  *
  */"
+
+#= TODO:
+While this code generator seem complete.
+It could automate the generation of header files for modules with other names then absyn.
+A possible improvement would be to decouple the logic from the absyn name. - John 2021-12-05
+=#
 
 """
   Generate C Headers
@@ -137,8 +147,7 @@ end
   Generate the program external header for Julia.
   @author johti17, based on code by adrpo.
 """
-function programExternalHeaderJulia(allDataTypes, moduleName)
-  
+function programExternalHeaderJulia(allDataTypes, moduleName)  
   local buffer = IOBuffer()
   println(buffer, COPYRIGHT_HEADER)
   println(buffer, "/* Automatically generated header for external MetaModelica functions */")
@@ -177,7 +186,9 @@ function programExternalHeaderJulia(allDataTypes, moduleName)
 end
 
 
-
+"""
+  Generates C declarations of the components used by the parser
+"""
 function generateJL_Values(allDataTypes)
   local buffer = IOBuffer()
   #= Start by init all abstract types =#
@@ -210,7 +221,9 @@ function generateJL_Values(allDataTypes)
   String(take!(buffer))
 end
 
-
+"""
+  This functions generates assert to check that we can find the symbols in the Julia runtime.
+"""
 function generateJL_Asserts(allDataTypes, moduleName)
   local buffer = IOBuffer()
   local preamble = "
