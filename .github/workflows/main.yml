@@ -49,10 +49,9 @@ jobs:
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
     - name:  Run the testsuite
-    - run: julia --color=yes
-    - uses: julia-actions/julia-runtest@v1
+      uses: julia-actions/julia-runtest@v1
       with:
-        file: lcov.info
+        version: "1.7.0"
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
