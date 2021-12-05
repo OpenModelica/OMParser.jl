@@ -98,42 +98,46 @@ goto rule ## func ## Ex; }}
   #define GlobalScript__ISTMTS(X, Y) NULL
 
   #if !defined(JL_GC_PUSH7)
-  #define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                      \
-    void *__gc_stkf[] = {(void*)15, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
+  #define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                                           \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(7), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH8)
   #define JL_GC_PUSH8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)                      \
-    void *__gc_stkf[] = {(void*)17, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(8), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH9)
   #define JL_GC_PUSH9(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)                      \
-    void *__gc_stkf[] = {(void*)19, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(9), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH10)
   #define JL_GC_PUSH10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)                      \
-    void *__gc_stkf[] = {(void*)21, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(10), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH11)
   #define JL_GC_PUSH11(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)                      \
-    void *__gc_stkf[] = {(void*)23, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(11), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
 
-  #define OM_PUSHZ1(A) (A) = NULL; JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  /* uncomment this to stress test the code by doing gc at each function start
+   * 0 = auto, 1 = full, 2 = incremental
+   */
+  #define jlgc(NN) /* jl_gc_collect(NN) */
+  #define OM_PUSHZ1(A) (A) = NULL; jlgc(1); JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; jlgc(1); JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; jlgc(1); JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; jlgc(1); JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; jlgc(1); JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; jlgc(1); JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; jlgc(1); JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; jlgc(1); JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; jlgc(1); JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; jlgc(1); JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; jlgc(1); JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
   #define OM_POP(NN) ctx->pModelicaParser_omcTop->numPushed=ctx->pModelicaParser_omcTop->numPushed-1; JL_GC_POP();
 }
 
@@ -826,7 +830,7 @@ equation_annotation_list [ void **ann] returns [void* ast]
 } :
   (
   { LA(1) != END_IDENT && LA(1) != CONSTRAINT && LA(1) != EQUATION && LA(1) != T_ALGORITHM && LA(1)!=INITIAL && LA(1) != PROTECTED && LA(1) != PUBLIC }? =>
-  ( eq=equation SEMICOLON { ast = mmc_mk_cons_typed(Absyn_EquationItem, eq.ast,ast); }
+  ( eq=equation SEMICOLON { ast = mmc_mk_cons_typed(Absyn_EquationItem, eq.ast, ast); }
   | ea=annotation SEMICOLON {*ann = mmc_mk_cons_typed(Absyn_Annotation, ea, *ann);}
   )
     {
@@ -1399,13 +1403,13 @@ relation returns [void* ast]
 
 arithmetic_expression returns [void* ast]
 @declarations { void* op = NULL; }
-@init { OM_PUSHZ3(e1, e2, op); } :
+@init { OM_PUSHZ4(e1, e2, op, ast); } :
   e1=unary_arithmetic_expression { ast = e1; }
     ( ( PLUS {op=Absyn__ADD;} | MINUS {op=Absyn__SUB;} | PLUS_EW {op=Absyn__ADD_5fEW;} | MINUS_EW {op=Absyn__SUB_5fEW;}
       ) e2=term { ast = Absyn__BINARY(ast,op,e2); }
     )*
   ;
-  finally{ OM_POP(3); }
+  finally{ OM_POP(4); }
 
 unary_arithmetic_expression returns [void* ast]
 @init { OM_PUSHZ2(t, ast); } :
@@ -1436,9 +1440,7 @@ factor returns [void* ast]
       ast = pw ? Absyn__BINARY(e1.ast, $pw.type == POWER ? Absyn__POW : Absyn__POW_5fEW, e2.ast) : e1.ast;
     }
   ;
-  finally{
-    OM_POP(2); 
-  }
+  finally{ OM_POP(2); }
 
 primary returns [void* ast]
 @declarations { int tupleExpressionIsTuple = 0; }
@@ -1502,14 +1504,16 @@ matrix_expression_list returns [void* ast]
   finally{ OM_POP(2); }
 
 component_reference__function_call returns [void* ast]
-@init{ OM_PUSHZ4(cr.ast, ids, fc, e.ast); i = 0; } :
-  (component_reference LESS name_list GREATER function_call) =>
+@init{ OM_PUSHZ4(cr.ast, /*ids,*/ fc, e.ast, $ast); i = 0; } :
+  /* julia gc barfs on this one
+  (cr=component_reference LESS ids=name_list GREATER fc=function_call) =>
   cr=component_reference LESS ids=name_list GREATER fc=function_call {
     modelicaParserAssert(metamodelica_enabled(), "Polymorphic type specifiers are only available in MetaModelica",
       component_reference__function_call, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition);
     $ast = Absyn__CALL(cr.ast, fc, ids);
   }
-  | cr=component_reference ( fc=function_call (DOT e=expression[metamodelica_enabled()])? )? {
+  | */
+  cr=component_reference ( fc=function_call (DOT e=expression[metamodelica_enabled()])? )? {
       if (fc != NULL) {
         $ast = Absyn__CALL(cr.ast, fc, mmc_mk_nil());
         if (e.ast != 0) {
@@ -1525,7 +1529,7 @@ component_reference__function_call returns [void* ast]
       $ast = Absyn__CALL($ast,Absyn__FUNCTIONARGS(mmc_mk_nil(),mmc_mk_nil()),mmc_mk_nil());
     }
   ;
-  finally{ OM_POP(3); }
+  finally{ OM_POP(4); }
 
 name_path_end returns [void* ast]
 @init{ OM_PUSHZ1(np); } :
@@ -1570,7 +1574,7 @@ name_path_star returns [void* ast, int unqual, void* lst]
   finally{ OM_POP(5); }
 
 name_path_group returns [void* ast]
-@init{ id1 = 0; id2 = 0; void *tmp; OM_PUSHZ2(rest, tmp); } :
+@init{ id1 = 0; id2 = 0; void *tmp = NULL; OM_PUSHZ2(rest, tmp); } :
   (id1=IDENT|id1=CODE) (EQUALS (id2=IDENT|id2=CODE))? (COMMA rest=name_path_group)?
     {
       tmp = token_to_scon(id1);
@@ -1591,7 +1595,7 @@ component_reference_end returns [void* ast]
   finally{ OM_POP(1); }
 
 component_reference returns [void* ast, int isNone]
-@init{ OM_PUSHZ1(cr.ast); dot = 0; cr.isNone = 0; } :
+@init{ OM_PUSHZ2(cr.ast, $ast); dot = 0; cr.isNone = 0; } :
   (dot=DOT)? cr=component_reference2
     {
       $ast = dot ? Absyn__CREF_5fFULLYQUALIFIED(cr.ast) : cr.ast;
@@ -1600,7 +1604,7 @@ component_reference returns [void* ast, int isNone]
   | ALLWILD { $ast = Absyn__ALLWILD; $isNone = false; }
   | WILD { $ast = Absyn__WILD; $isNone = false; }
   ;
-  finally{ OM_POP(1); }
+  finally{ OM_POP(2); }
 
 component_reference2 returns [void* ast, int isNone]
 @init { id = 0; OM_PUSHZ2(cr.ast, arr); } :

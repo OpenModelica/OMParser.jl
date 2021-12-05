@@ -18,7 +18,7 @@ $(BUILDDIR):
 	mkdir -p $(BUILDDIR)/include/$(host_short)/antlr3/
 	mkdir -p $(BUILDDIR)/$(LIB_OMC)/
 
-install: $(ANTLR_LIB_STATIC) $(ANTLR_LIB_SHARED) libomparse-julia.a libomparse-julia$(SHREXT)
+install: $(BUILDDIR) $(ANTLR_LIB_STATIC) $(ANTLR_LIB_SHARED) libomparse-julia.a libomparse-julia$(SHREXT)
 	cp $(ANTLR)/antlr3config.h $(ANTLR)/include/*.h $(BUILDDIR)/include/$(host_short)/antlr3
 	cp $(ANTLR_LIB_STATIC) $(ANTLR_LIB_SHARED) libomparse-julia.a libomparse-julia$(SHREXT) $(BUILDDIR)/$(LIB_OMC)/
 
