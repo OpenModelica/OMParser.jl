@@ -1,10 +1,6 @@
 using Test
 import OMParser
 
-#= Temporary. Going to add the full version later =#
-import Pkg
-Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
-
 @testset "Simple standalone modules" begin
 
 @test true == begin
