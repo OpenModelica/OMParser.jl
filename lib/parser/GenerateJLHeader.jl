@@ -30,8 +30,18 @@
  */
 =#
 
-import Absyn
 using InteractiveUtils
+import Pkg
+#= Add the general registry if we do not have it.=#
+Pkg.Registry.add("General")
+#= Add the Modelica registry =#
+Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
+#= Temporary. Going to add the full version later =#
+Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
+Pkg.add("MetaModelica")
+Pkg.add("ImmutableList")
+
+import Absyn
 
 COPYRIGHT_HEADER = "/*
  * This file is part of OpenModelica.
