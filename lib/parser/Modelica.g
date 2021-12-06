@@ -84,69 +84,6 @@ goto rule ## func ## Ex; }}
 
   #include "ModelicaParserCommon.h"
 
-  #if !defined(OMJULIA)
-
-  #include "errorext.h"
-
-  #define or_nil(x) (x != 0 ? x : mmc_mk_nil())
-  #define mmc_mk_some_or_none(x) (x ? mmc_mk_some(x) : mmc_mk_none())
-  #define mmc_mk_tuple2(x1,x2) mmc_mk_box2(0,x1,x2)
-#if 0
-  /* Enable if you don't want to generate the tree */
-  void* mmc_mk_box_eat_all(int ix, ...);
-  #define mmc_mk_scon(x) x
-  #define mmc_mk_rcon(x) mmc_mk_box_eat_all(0,x)
-  #define mmc_mk_box0(x1) mmc_mk_box_eat_all(x1)
-  #define mmc_mk_box1(x1,x2) mmc_mk_box_eat_all(x1,x2)
-  #define mmc_mk_box2(x1,x2,x3) mmc_mk_box_eat_all(x1,x2,x3)
-  #define mmc_mk_box3(x1,x2,x3,x4) mmc_mk_box_eat_all(x1,x2,x3,x4)
-  #define mmc_mk_box4(x1,x2,x3,x4,x5) mmc_mk_box_eat_all(x1,x2,x3,x4,x5)
-  #define mmc_mk_box5(x1,x2,x3,x4,x5,x6) mmc_mk_box_eat_all(x1,x2,x3,x4,x5,x6)
-  #define mmc_mk_box6(x1,x2,x3,x4,x5,x6,x7) mmc_mk_box_eat_all(x1,x2,x3,x4,x5,x6,x7)
-  #define mmc_mk_box7(x1,x2,x3,x4,x5,x6,x7,x8) mmc_mk_box_eat_all(x1,x2,x3,x4,x5,x6,x7,x8)
-  #define mmc_mk_box8(x1,x2,x3,x4,x5,x6,x7,x8,x9) mmc_mk_box_eat_all(x1,x2,x3,x4,x5,x6,x7,x8,x9)
-  #define mmc_mk_box9(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10) mmc_mk_box_eat_all(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10)
-  #define mmc_mk_cons(x1,x2) mmc_mk_box_eat_all(0,x1,x2)
-  #define mmc_mk_some(x1) mmc_mk_box_eat_all(0,x1)
-  #define mmc_mk_none(void) NULL
-  #define mmc_mk_nil() NULL
-  #undef MMC_GETHDR
-  #define MMC_GETHDR(x) 0
-  #undef MMC_STRUCTHDR
-  #define MMC_STRUCTHDR(x,y) 0
-#endif
-
-  #define NYI(void) fprintf(stderr, "NYI \%s \%s:\%d\n", __FUNCTION__, __FILE__, __LINE__); exit(1);
-
-  #define PARSER_INFO(start) ((void*) SourceInfo__SOURCEINFO(ModelicaParser_filename_OMC, mmc_mk_bcon(ModelicaParser_readonly), mmc_mk_icon(start->line), mmc_mk_icon(start->line == 1 ? start->charPosition+2 : start->charPosition+1), mmc_mk_icon(LT(1)->line), mmc_mk_icon(LT(1)->charPosition+1), ModelicaParser_timeStamp))
-  #if !defined(OMC_GENERATE_RELOCATABLE_CODE) || defined(OMC_BOOTSTRAPPING)
-  modelica_boolean omc_AbsynUtil_isDerCref(threadData_t* threadData, void* exp);
-  #else
-  modelica_boolean (*omc_AbsynUtil_isDerCref)(threadData_t* threadData, void* exp);
-  #endif
-
-  #define isCref(X) (MMC_GETHDR(X) == MMC_STRUCTHDR(1+1, Absyn__CREF_3dBOX1))
-  #define isPath(X) (MMC_GETHDR(X) == MMC_STRUCTHDR(2+1, Absyn__TPATH_3dBOX2))
-  #define isComplex(X) (MMC_GETHDR(X) == MMC_STRUCTHDR(3+1, Absyn__TCOMPLEX_3dBOX3))
-  #define isTuple(X) (MMC_GETHDR(X) == MMC_STRUCTHDR(1+1, Absyn__TUPLE_3dBOX1))
-  #define isCall(X) (MMC_GETHDR(X) == MMC_STRUCTHDR(3+1, Absyn__CALL_3dBOX3))
-  #define isNotNil(X) (MMC_NILHDR != MMC_GETHDR(X))
-  #define mmc_mk_cons_typed(T,head,tail) mmc_mk_cons(head,tail)
-  #define OM_PUSHZ1(A) (A) = NULL;
-  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL;
-  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL;
-  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL;
-  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL;
-  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL;
-  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL;
-  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL;
-  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL;
-  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL;
-  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL;
-  #define OM_POP(NN) /* nothing */
-
-  #else
-
   /* Julia */
   #define PARSER_INFO(start) ((void*) SourceInfo__SOURCEINFO(ModelicaParser_filename_OMC, mmc_mk_bcon(ModelicaParser_readonly), mmc_mk_icon(start->line), mmc_mk_icon(start->line == 1 ? start->charPosition+2 : start->charPosition+1), mmc_mk_icon(LT(1)->line), mmc_mk_icon(LT(1)->charPosition+1), mmc_mk_rcon(0.0)))
   #define isCref(X) jl_typeis(X, Absyn_Exp_CREF_type)
@@ -161,65 +98,56 @@ goto rule ## func ## Ex; }}
   #define GlobalScript__ISTMTS(X, Y) NULL
 
   #if !defined(JL_GC_PUSH7)
-  #define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                      \
-    void *__gc_stkf[] = {(void*)15, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
+  #define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                                           \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(7), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH8)
   #define JL_GC_PUSH8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)                      \
-    void *__gc_stkf[] = {(void*)17, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(8), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH9)
   #define JL_GC_PUSH9(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)                      \
-    void *__gc_stkf[] = {(void*)19, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(9), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH10)
   #define JL_GC_PUSH10(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)                      \
-    void *__gc_stkf[] = {(void*)21, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(10), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
   #if !defined(JL_GC_PUSH11)
   #define JL_GC_PUSH11(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)                      \
-    void *__gc_stkf[] = {(void*)23, jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11}; \
+    void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(11), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11}; \
     jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
   #endif
 
-  #define OM_PUSHZ1(A) (A) = NULL; JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  /* uncomment this to stress test the code by doing gc at each function start
+   * 0 = auto, 1 = full, 2 = incremental
+   */
+  #define jlgc(NN) /* jl_gc_collect(NN) */
+  #define OM_PUSHZ1(A) (A) = NULL; jlgc(1); JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; jlgc(1); JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; jlgc(1); JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; jlgc(1); JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; jlgc(1); JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; jlgc(1); JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; jlgc(1); JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; jlgc(1); JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; jlgc(1); JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; jlgc(1); JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; jlgc(1); JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
   #define OM_POP(NN) ctx->pModelicaParser_omcTop->numPushed=ctx->pModelicaParser_omcTop->numPushed-1; JL_GC_POP();
-
-  #endif
 }
 
 @members
 {
   #define ARRAY_REDUCTION_NAME "\$array"
 
-  #if !defined(OMJULIA)
-    #include "meta/meta_modelica.h"
-    #define ADD_METARECORD_DEFINITIONS static
-    #if defined(OMC_BOOTSTRAPPING)
-      #include "../Compiler/boot/tarball-include/OpenModelicaBootstrappingHeader.h"
-    #else
-      #include "../Compiler/OpenModelicaBootstrappingHeader.h"
-    #endif
-    parser_members members;
-    void* mmc_mk_box_eat_all(int ix, ...) {return NULL;}
-  #else /* Julia */
-    #include "OpenModelicaJuliaHeader.h"
-    #include "MetaModelicaJuliaLayer.h"
-  #endif
+  /* Julia */
+  #include "OpenModelicaJuliaHeader.h"
+  #include "MetaModelicaJuliaLayer.h"
 }
 
 /*------------------------------------------------------------------
@@ -640,49 +568,23 @@ component_clause returns [void* ast]
       // Take the last (array subscripts) from type and move it to ATTR
       if (isPath($path.ast)) // is TPATH(path, arr)
       {
-      #if !defined(OMJULIA)
-        struct mmc_struct *p = (struct mmc_struct*)MMC_UNTAGPTR($path.ast);
-        ar_option = p->data[1+UNBOX_OFFSET];  // get the array option
-        p->data[1+UNBOX_OFFSET] = mmc_mk_none();  // replace the array with nothing
-      #else
         /* Are these things OK? */
         ar_option = jl_data_ptr($path.ast)[1];
         jl_data_ptr($path.ast)[1] = jl_nothing;
         jl_gc_wb($path.ast, jl_nothing);
-      #endif
       }
       else if (isComplex($path.ast))
       {
-      #if !defined(OMJULIA)
-        struct mmc_struct *p = (struct mmc_struct*)MMC_UNTAGPTR($path.ast);
-        ar_option = p->data[2+UNBOX_OFFSET];         // get the array option
-        p->data[2+UNBOX_OFFSET] = mmc_mk_none();  // replace the array with nothing
-      #else
         /* Are these things OK? */
         ar_option = jl_data_ptr($path.ast)[2];
         jl_data_ptr($path.ast)[2] = jl_nothing;
         jl_gc_wb($path.ast, jl_nothing);
-      #endif
       }
       else
       {
         fprintf(stderr, "component_clause error\n");
       }
 
-      #if !defined(OMJULIA)
-      { /* adrpo - use the ANSI C standard */
-        // no arr was set, inspect ar_option and fix it
-        struct mmc_struct *p = (struct mmc_struct*)MMC_UNTAGPTR(ar_option);
-        if (optionNone(ar_option))
-        {
-          arr = mmc_mk_nil();
-        }
-        else // is SOME(arr)
-        {
-          arr = p->data[0];
-        }
-      }
-      #else
       { /* adrpo - use the ANSI C standard */
         // no arr was set, inspect ar_option and fix it
         if (optionNone(ar_option))
@@ -694,7 +596,6 @@ component_clause returns [void* ast]
           arr = jl_data_ptr(ar_option)[0];
         }
       }
-      #endif
 
       ast = Absyn__COMPONENTS(Absyn__ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, arr), $path.ast, clst);
     }
@@ -929,7 +830,7 @@ equation_annotation_list [ void **ann] returns [void* ast]
 } :
   (
   { LA(1) != END_IDENT && LA(1) != CONSTRAINT && LA(1) != EQUATION && LA(1) != T_ALGORITHM && LA(1)!=INITIAL && LA(1) != PROTECTED && LA(1) != PUBLIC }? =>
-  ( eq=equation SEMICOLON { ast = mmc_mk_cons_typed(Absyn_EquationItem, eq.ast,ast); }
+  ( eq=equation SEMICOLON { ast = mmc_mk_cons_typed(Absyn_EquationItem, eq.ast, ast); }
   | ea=annotation SEMICOLON {*ann = mmc_mk_cons_typed(Absyn_Annotation, ea, *ann);}
   )
     {
@@ -1133,12 +1034,7 @@ assign_clause_a returns [void* ast]
         modelicaParserAssert(isCall(e1), "Only function call expressions may stand alone in an algorithm section",
                              assign_clause_a, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition);
         { /* uselsess block for ANSI C crap */
-        #if !defined(OMJULIA)
-          struct mmc_struct *p = (struct mmc_struct*)MMC_UNTAGPTR(e1);
-          $ast = Absyn__ALG_5fNORETCALL(p->data[0+UNBOX_OFFSET],p->data[1+UNBOX_OFFSET]);
-        #else
           $ast = Absyn__ALG_5fNORETCALL(jl_data_ptr(e1)[0],jl_data_ptr(e1)[1]);
-        #endif
         }
       }
     )
@@ -1161,12 +1057,7 @@ equality_or_noretcall_equation returns [void* ast]
        {
          modelicaParserAssert(isCall(e1),"A singleton expression in an equation section is required to be a function call", equality_or_noretcall_equation, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition);
          {
-         #if !defined(OMJULIA)
-           struct mmc_struct *p = (struct mmc_struct*)MMC_UNTAGPTR(e1);
-           $ast = Absyn__EQ_5fNORETCALL(p->data[0+UNBOX_OFFSET],p->data[1+UNBOX_OFFSET]);
-         #else
            $ast = Absyn__EQ_5fNORETCALL(jl_data_ptr(e1)[0],jl_data_ptr(e1)[1]);
-         #endif
          }
        }
     )
@@ -1512,13 +1403,13 @@ relation returns [void* ast]
 
 arithmetic_expression returns [void* ast]
 @declarations { void* op = NULL; }
-@init { OM_PUSHZ3(e1, e2, op); } :
+@init { OM_PUSHZ4(e1, e2, op, ast); } :
   e1=unary_arithmetic_expression { ast = e1; }
     ( ( PLUS {op=Absyn__ADD;} | MINUS {op=Absyn__SUB;} | PLUS_EW {op=Absyn__ADD_5fEW;} | MINUS_EW {op=Absyn__SUB_5fEW;}
       ) e2=term { ast = Absyn__BINARY(ast,op,e2); }
     )*
   ;
-  finally{ OM_POP(3); }
+  finally{ OM_POP(4); }
 
 unary_arithmetic_expression returns [void* ast]
 @init { OM_PUSHZ2(t, ast); } :
@@ -1559,49 +1450,12 @@ primary returns [void* ast]
       char* chars = (char*)$v.text->chars;
       char* endptr;
       const char* args[2] = {NULL};
-#if !defined(OMJULIA)
-      mmc_sint_t l = 0;
-#else
       int l = 0;
-#endif
 
       errno = 0;
       l = strtol(chars,&endptr,10);
 
-#if !defined(OMJULIA)
-      args[0] = chars;
-      args[1] = MMC_SIZE_INT == 8 ? "OpenModelica (64-bit) only supports 63"
-                                  : errno || *endptr != 0 ? "Modelica only supports 32"
-                                                          : "OpenModelica only supports 31";
-
-      if (errno || *endptr != 0) {
-        double d = 0;
-        errno = 0;
-        d = strtod(chars,&endptr);
-        modelicaParserAssert(*endptr == 0 && errno==0, "Number is too large to be represented by a double on this machine", primary, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition+1);
-        c_add_source_message(NULL,2, ErrorType_syntax, ErrorLevel_warning, "\%s-bit signed integers! Transforming: \%s into a real",
-          args, 2, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition+1,
-          ModelicaParser_readonly, ModelicaParser_filename_C_testsuiteFriendly);
-        $ast = Absyn__REAL(mmc_mk_scon(chars));
-      } else {
-        if (((mmc_sint_t)1<<(MMC_SIZE_INT*8-2))-1 >= l) {
-          $ast = Absyn__INTEGER(MMC_IMMEDIATE(MMC_TAGFIXNUM(l))); /* We can't use mmc_mk_icon here - it takes "int"; not "long" */
-        } else {
-          mmc_sint_t lt = ((mmc_sint_t)1<<(MMC_SIZE_INT == 8 ? 62 : 30))-1;
-          if (l > lt) {
-            const char *msg = MMC_SIZE_INT != 8 ? "\%s-bit signed integers! Truncating integer: \%s to 1073741823" : "\%s-bit signed integers! Truncating integer: \%s to 4611686018427387903";
-            c_add_source_message(NULL,2, ErrorType_syntax, ErrorLevel_warning, msg,
-                                 args, 2, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition+1,
-                                 ModelicaParser_readonly, ModelicaParser_filename_C_testsuiteFriendly);
-            $ast = Absyn__INTEGER(MMC_IMMEDIATE(MMC_TAGFIXNUM(lt)));
-          } else {
-            $ast = Absyn__REAL(mmc_mk_scon(chars));
-          }
-        }
-      }
-#else /* julia */
-     $ast = Absyn__INTEGER(mmc_mk_icon(l));
-#endif
+      $ast = Absyn__INTEGER(mmc_mk_icon(l));
     }
   | v=UNSIGNED_REAL
     {
@@ -1650,14 +1504,16 @@ matrix_expression_list returns [void* ast]
   finally{ OM_POP(2); }
 
 component_reference__function_call returns [void* ast]
-@init{ OM_PUSHZ4(cr.ast, ids, fc, e.ast); i = 0; } :
-  (component_reference LESS name_list GREATER function_call) =>
+@init{ OM_PUSHZ4(cr.ast, /*ids,*/ fc, e.ast, $ast); i = 0; } :
+  /* julia gc barfs on this one
+  (cr=component_reference LESS ids=name_list GREATER fc=function_call) =>
   cr=component_reference LESS ids=name_list GREATER fc=function_call {
     modelicaParserAssert(metamodelica_enabled(), "Polymorphic type specifiers are only available in MetaModelica",
       component_reference__function_call, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition);
     $ast = Absyn__CALL(cr.ast, fc, ids);
   }
-  | cr=component_reference ( fc=function_call (DOT e=expression[metamodelica_enabled()])? )? {
+  | */
+  cr=component_reference ( fc=function_call (DOT e=expression[metamodelica_enabled()])? )? {
       if (fc != NULL) {
         $ast = Absyn__CALL(cr.ast, fc, mmc_mk_nil());
         if (e.ast != 0) {
@@ -1673,7 +1529,7 @@ component_reference__function_call returns [void* ast]
       $ast = Absyn__CALL($ast,Absyn__FUNCTIONARGS(mmc_mk_nil(),mmc_mk_nil()),mmc_mk_nil());
     }
   ;
-  finally{ OM_POP(3); }
+  finally{ OM_POP(4); }
 
 name_path_end returns [void* ast]
 @init{ OM_PUSHZ1(np); } :
@@ -1718,7 +1574,7 @@ name_path_star returns [void* ast, int unqual, void* lst]
   finally{ OM_POP(5); }
 
 name_path_group returns [void* ast]
-@init{ id1 = 0; id2 = 0; void *tmp; OM_PUSHZ2(rest, tmp); } :
+@init{ id1 = 0; id2 = 0; void *tmp = NULL; OM_PUSHZ2(rest, tmp); } :
   (id1=IDENT|id1=CODE) (EQUALS (id2=IDENT|id2=CODE))? (COMMA rest=name_path_group)?
     {
       tmp = token_to_scon(id1);
@@ -1739,7 +1595,7 @@ component_reference_end returns [void* ast]
   finally{ OM_POP(1); }
 
 component_reference returns [void* ast, int isNone]
-@init{ OM_PUSHZ1(cr.ast); dot = 0; cr.isNone = 0; } :
+@init{ OM_PUSHZ2(cr.ast, $ast); dot = 0; cr.isNone = 0; } :
   (dot=DOT)? cr=component_reference2
     {
       $ast = dot ? Absyn__CREF_5fFULLYQUALIFIED(cr.ast) : cr.ast;
@@ -1748,7 +1604,7 @@ component_reference returns [void* ast, int isNone]
   | ALLWILD { $ast = Absyn__ALLWILD; $isNone = false; }
   | WILD { $ast = Absyn__WILD; $isNone = false; }
   ;
-  finally{ OM_POP(1); }
+  finally{ OM_POP(2); }
 
 component_reference2 returns [void* ast, int isNone]
 @init { id = 0; OM_PUSHZ2(cr.ast, arr); } :
