@@ -10,7 +10,6 @@ struct ParseError
 end
 
 function isDerCref(exp::Absyn.Exp)::Bool
-  @info "London calling"
   @match exp begin
     Absyn.CALL(Absyn.CREF_IDENT("der",  nil()), Absyn.FUNCTIONARGS(Absyn.CREF(__) <|  nil(),  nil()), nil())  => true
     _ => false
@@ -31,8 +30,8 @@ else
 end
 
 function parseFile(fileName::String, acceptedGram::Int64 = 1)::Absyn.Program
-  @info _libpath
-  @info fileName
+  @debug _libpath
+  @debug fileName
   local res = ccall((:parseFile, _libpath), Any, (String, Int64), fileName, acceptedGram)
   if res == nothing
     throw(ParseError())
