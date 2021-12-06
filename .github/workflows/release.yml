@@ -1,4 +1,6 @@
---- 
+---
+on:
+release:
 jobs: 
   build: 
     defaults: 
