@@ -1,6 +1,8 @@
 module OMParser
 
 import Absyn, MetaModelica, ImmutableList
+#= For searching files.. =#
+import Glob
 using MetaModelica
 
 #import Settings
@@ -16,15 +18,50 @@ function isDerCref(exp::Absyn.Exp)::Bool
   end
 end
 
+function locateSharedParserLibrary(directoryToSearchIn)
+  local res = Glob.glob("*",  joinpath(directoryToSearchIn, "lib"))
+  local results = []
+  for p in res
+    push!(results, Glob.glob("*",  joinpath(directoryToSearchIn, p)))
+  end
+  #= Locate DLL =#
+  if Sys.islinux()
+    for r in results
+      for p in r
+        if occursin("libomparse-julia.so", p)
+          return p
+        end
+      end
+    end
+    throw("No so exiting...")
+  elseif Sys.iswindows()
+    for r in results
+      for p in r
+        if occursin("libomparse-julia.dll", p)
+          return p
+        end
+      end
+    end
+    throw("No dll exiting...")
+  else #= Assume apple=#
+    for r in results
+      for p in r
+        if occursin("libomparse-julia.dylib", p)
+          return p
+        end
+      end
+    end
+    throw("No dll exiting...")
+  end
+end
+
+
 const _libpath = if Sys.iswindows()
-  local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "build", "lib", "x86_64-mingw32", "libomparse-julia.dll")
+  locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
 elseif Sys.islinux()
-  local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "build","lib", "x86_64-linux-gnu", "libomparse-julia.so")
+  locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
 elseif Sys.isapple()
-  local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "build","lib", "x86_64-*", "libomparse-julia.dylib")
+  locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
 else
   throw("Your system is not supported. Supported Systems are Linux, macOS and Windows.")
 end
