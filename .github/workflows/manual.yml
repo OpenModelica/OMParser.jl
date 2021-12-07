@@ -54,32 +54,34 @@ jobs:
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
-    - name:  Run the testsuite
+    -
+      name:  Run the testsuite
       uses: julia-actions/julia-runtest@v1
-    - name: upload library
+      with:
+        version: "1.7.0"
+    -
+      name: upload library
       uses: actions/upload-artifact@v2
       with:
         name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
 #= Steps to perform the release =#
-      - 
-        name: "Perform Release"
-        uses: actions/create-release@v1
-        with: 
-          body_path: CHANGELOG.md
-          draft: false
-          env: 
-            GITHUB_TOKEN: "${{ github.token }}"
+    - 
+      name: "Perform Release"
+      uses: actions/create-release@v1
+      with: 
+        body_path: CHANGELOG.md
+        draft: false
+        env: 
+          GITHUB_TOKEN: "${{ github.token }}"
           prerelease: false
           release_name: "${{ steps.version.outputs.version }}"
           tag_name: "${{ github.ref }}"
-      - 
-        env: 
-          GITHUB_TOKEN: "${{ github.token }}"
-        name: "upload release artifact"
-        uses: actions/upload-release-asset@v1
-        with: 
-          asset_content_type: zip
-          asset_name: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
-          asset_path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
-          upload_url: "${{ steps.create_release.outputs.upload_url }}"
+    - 
+      name: "upload release artifact"
+      uses: actions/upload-release-asset@v1
+      with: 
+        asset_content_type: zip
+        asset_name: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
+        asset_path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
+        upload_url: "${{ steps.create_release.outputs.upload_url }}"
