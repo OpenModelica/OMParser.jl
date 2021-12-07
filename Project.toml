@@ -6,6 +6,7 @@ version = "0.0.1"
 [deps]
 Absyn = "ce2f92e2-a952-11e9-0543-8b443f216f1d"
 ExportAll = "ad2082ca-a69e-11e9-38fa-e96309a31fe4"
+Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 ImmutableList = "4a558cac-c1ed-11e9-20da-3584bcd8709a"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
