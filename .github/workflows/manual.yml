@@ -56,8 +56,6 @@ jobs:
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
     - name:  Run the testsuite
       uses: julia-actions/julia-runtest@v1
-      with:
-        file: lcov.info
     - name: upload library
       uses: actions/upload-artifact@v2
       with:
