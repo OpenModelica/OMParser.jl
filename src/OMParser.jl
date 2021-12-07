@@ -24,7 +24,7 @@ elseif Sys.islinux()
   joinpath(instDir, "lib", "build","lib", "x86_64-linux-gnu", "libomparse-julia.so")
 elseif Sys.isapple()
   local instDir = INSTALLATION_DIRECTORY_PATH
-  joinpath(instDir, "lib", "build","lib", "x86_64-*, "libomparse-julia.dylib")
+  joinpath(instDir, "lib", "build","lib", "x86_64-*", "libomparse-julia.dylib")
 else
   throw("Your system is not supported. Supported Systems are Linux, macOS and Windows.")
 end
