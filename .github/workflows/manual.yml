@@ -1,4 +1,4 @@
-# This is a basic workflow that is manually triggered
+# Goal. Make a release workflow so that we can built artificats and use them quickly
 
 name: Manual workflow
 
@@ -10,21 +10,94 @@ on:
     inputs:
       name:
         # Friendly description to be shown in the UI instead of 'name'
-        description: 'Person to greet'
+        description: 'Trigger a release built'
         # Default value if no value is explicitly provided
         default: 'World'
         # Input has to be provided for the workflow to run
         required: true
-
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "greet"
-  greet:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-    # Runs a single command using the runners shell
-    - name: Send greeting
-      run: echo "Hello ${{ github.event.inputs.name }}"
+  build: 
+    defaults: 
+      run: 
+        shell: "${{ matrix.sys.shell }}"
+    name: "building OMParser.jl/lib/parser"
+    runs-on: "${{ matrix.sys.os }}"
+    steps: 
+      - 
+        name: "setup julia environment"
+        uses: julia-actions/setup-julia@v1
+        with: 
+          version: "1.7.0"
+      - 
+        name: "setup msys2 environment"
+        uses: msys2/setup-msys2@v2
+        with: 
+          install: "base-devel mingw-w64-x86_64-toolchain"
+          path-type: inherit
+          platform-check-severity: warn
+          update: false
+      - 
+        if: "contains(matrix.sys.os, 'windows')"
+        name: "set git to use LF on Windows"
+        run: |
+            git config --system core.autocrlf false
+            git config --system core.eol lf
+      - 
+        uses: actions/checkout@v2
+      - 
+        name: "configure the library and build"
+        run: |
+            which gcc
+            gcc --version
+            cd lib/parser
+            autoconf
+            ./configure
+            make
+            cd ../build/lib
+            tar -czvf ${{matrix.sys.os}}-library.tar.gz *
+            mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
+      - 
+        name: "Run the testsuite"
+        uses: julia-actions/julia-runtest@v1
+        with: 
+          version: "1.7.0"
+      - 
+        name: "upload library"
+        uses: actions/upload-artifact@v2
+        with: 
+          name: parser-library
+          path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
+      - 
+        name: "Perform Release"
+        uses: actions/create-release@v1
+        with: 
+          body_path: CHANGELOG.md
+          draft: false
+          env: 
+            GITHUB_TOKEN: "${{ github.token }}"
+          prerelease: false
+          release_name: "${{ steps.version.outputs.version }}"
+          tag_name: "${{ github.ref }}"
+      - 
+        env: 
+          GITHUB_TOKEN: "${{ github.token }}"
+        name: "upload release artifact"
+        uses: actions/upload-release-asset@v1
+        with: 
+          asset_content_type: zip
+          asset_name: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
+          asset_path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
+          upload_url: "${{ steps.create_release.outputs.upload_url }}"
+    strategy: 
+      matrix: 
+        sys: 
+          - 
+            os: windows-latest
+            shell: "msys2 {0}"
+          - 
+            os: ubuntu-latest
+            shell: bash
+          - 
+            os: macos-latest
+            shell: bash
