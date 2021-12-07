@@ -60,21 +60,21 @@ jobs:
       - 
         name: "Run the testsuite"
         uses: julia-actions/julia-runtest@v1
-        with: 
+        with:
           version: "1.7.0"
       - 
         name: "upload library"
         uses: actions/upload-artifact@v2
-        with: 
+        with:
           name: parser-library
           path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
       - 
         name: "Perform Release"
         uses: actions/create-release@v1
-        with: 
+        with:
           body_path: CHANGELOG.md
           draft: false
-          env: 
+          env:
             GITHUB_TOKEN: "${{ github.token }}"
           prerelease: false
           release_name: "${{ steps.version.outputs.version }}"
