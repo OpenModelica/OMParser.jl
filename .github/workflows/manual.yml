@@ -68,11 +68,10 @@ jobs:
 #= Steps to perform the release =#
     - 
       name: "Perform Release"
-      uses: actions/create-release@v1
-      env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: "marvinpinto/action-automatic-releases@latest" #= Built the latest on master as a prerelease =#
       with:
-        tag_name: ${{ github.events.input.name }} #Get the name
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
         release_name: Release ${ {github.events.input.name} }
         body: |
           Changes in this Release
