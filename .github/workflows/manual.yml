@@ -4,7 +4,7 @@ name: Manual workflow
 on:
   workflow_dispatch:
     inputs:
-    tag_name:
+    name:
       # Friendly description to be shown in the UI instead of 'name'
       description: 'Trigger a release built'
       # Default value if no value is explicitly provided
