@@ -79,6 +79,9 @@ jobs:
           - qwerty
         draft: true
         prerelease: true
+        outputs:
+          version: ${{ steps.step_version.outputs.version }}
+          upload_url: ${{ steps.step_upload_url.outputs.upload_url }}
     - 
       name: "upload release artifact"
       uses: actions/upload-release-asset@v1
