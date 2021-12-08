@@ -76,7 +76,7 @@ jobs:
         GITHUB_TOKEN: "${{ github.token }}"
         prerelease: false
         release_name: "${{ steps.version.outputs.version }}"
-        tag_name: "${{ github.ref }}"
+        tag_name: "${{ github.event.inputs.name }}"
     - 
       name: "upload release artifact"
       uses: actions/upload-release-asset@v1
