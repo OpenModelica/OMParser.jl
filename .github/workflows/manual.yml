@@ -69,6 +69,8 @@ jobs:
     - 
       name: "Perform Release"
       uses: actions/create-release@v1
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.events.input.name }} #Get the name
         release_name: Release ${ {github.events.input.name} }
@@ -76,8 +78,8 @@ jobs:
           Changes in this Release
           - asdf
           - qwerty
-        draft: false
-        prerelease: false
+        draft: true
+        prerelease: true
     - 
       name: "upload release artifact"
       uses: actions/upload-release-asset@v1
