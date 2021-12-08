@@ -38,15 +38,16 @@ end
 
 end
 
-# @testset "Standard Library" begin
-#   @test true == begin
-#     try
-#       res = OMParser.parseFile("msl.mo")
-#       true
-#     catch err
-#       @info("Test failed with the following error:")
-#       @info "Error:" err
-#       false
-#     end
-#   end
-#end
+#= Warning might be flaky... =#
+@testset "Standard Library" begin
+  @test true == begin
+    try
+      res = OMParser.parseFile("msl.mo")
+      true
+    catch err
+      @info("Test failed with the following error:")
+      @info "Error:" err
+      false
+    end
+  end
+end

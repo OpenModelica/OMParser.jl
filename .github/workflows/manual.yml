@@ -1,6 +1,6 @@
 # Goal. Make a release workflow so that we can built artificats and use them quickly
-name: Manual workflow
-# or API.
+name: Manual Release 
+
 on:
   workflow_dispatch:
     inputs:
@@ -14,22 +14,27 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
+    name: building OMParser.jl/lib/parser
+
     runs-on: ${{ matrix.sys.os }}
     strategy:
       matrix:
         sys:
-#          - { os: windows-latest, shell: 'msys2 {0}' }
+          - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
-#          - { os: macos-latest,   shell: bash  }
+          - { os: macos-latest,   shell: bash  }
+
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
-    name: building OMParser.jl/lib/parser
+
     steps:
+
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
         version: "1.7.0"
+
     - name: setup msys2 environment
       uses: msys2/setup-msys2@v2
       with:
@@ -37,12 +42,15 @@ jobs:
         platform-check-severity: warn
         install: base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
+
     - name: set git to use LF on Windows
       if: contains(matrix.sys.os, 'windows')
       run: |
         git config --system core.autocrlf false
         git config --system core.eol lf
+
     - uses: actions/checkout@v2
+
     - name: configure the library and build
       run: |
         which gcc
@@ -54,39 +62,24 @@ jobs:
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
-    -
-      name:  Run the testsuite
+
+    - name:  Run the testsuite
       uses: julia-actions/julia-runtest@v1
       with:
         version: "1.7.0"
-    -
-      name: upload library
+
+    - name: upload library
       uses: actions/upload-artifact@v2
       with:
         name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
-#= Steps to perform the release =#
-    - 
-      name: "Perform Release"
-      uses: "marvinpinto/action-automatic-releases@latest" #= Built the latest on master as a prerelease =#
+
+    - name: "Perform Release"
+      uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "latest"
-        release_name: Release ${ {github.events.input.name} }
-        body: |
-          Changes in this Release
-          - asdf
-          - qwerty
-        draft: true
+        automatic_release_tag: "Latest-${{matrix.sys.os}}"
+        draft: false
         prerelease: true
-        outputs:
-          version: ${{ steps.step_version.outputs.version }}
-          upload_url: ${{ steps.step_upload_url.outputs.upload_url }}
-    - 
-      name: "upload release artifact"
-      uses: actions/upload-release-asset@v1
-      with: 
-        asset_content_type: zip
-        asset_name: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
-        asset_path: "${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz"
-        upload_url: "${{ steps.create_release.outputs.upload_url }}"
+        files: |
+          ${{matrix.sys.os}}-library.tar.gz
