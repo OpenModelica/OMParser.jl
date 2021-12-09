@@ -85,7 +85,7 @@ goto rule ## func ## Ex; }}
   #include "ModelicaParserCommon.h"
 
   /* Julia */
-  #define PARSER_INFO(start) ((void*) SourceInfo__SOURCEINFO(ModelicaParser_filename_OMC, mmc_mk_bcon(ModelicaParser_readonly), mmc_mk_icon(start->line), mmc_mk_icon(start->line == 1 ? start->charPosition+2 : start->charPosition+1), mmc_mk_icon(LT(1)->line), mmc_mk_icon(LT(1)->charPosition+1), mmc_mk_rcon(0.0)))
+  #define PARSER_INFO(start) (SourceInfo__SOURCEINFO(ModelicaParser_filename_OMC, ModelicaParser_readonly, start->line, start->line == 1 ? start->charPosition+2 : start->charPosition+1, LT(1)->line, LT(1)->charPosition+1, 0.0))
   #define isCref(X) jl_typeis(X, Absyn_Exp_CREF_type)
   #define isPath(X) jl_typeis(X, Absyn_TypeSpec_TPATH_type)
   #define isComplex(X) jl_typeis(X, Absyn_TypeSpec_TCOMPLEX_type)
@@ -126,18 +126,18 @@ goto rule ## func ## Ex; }}
   /* uncomment this to stress test the code by doing gc at each function start
    * 0 = auto, 1 = full, 2 = incremental
    */
-  #define jlgc(NN) /* jl_gc_collect(NN) */
-  #define OM_PUSHZ1(A) (A) = NULL; jlgc(1); JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; jlgc(1); JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; jlgc(1); JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; jlgc(1); JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; jlgc(1); JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; jlgc(1); JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; jlgc(1); JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; jlgc(1); JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; jlgc(1); JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; jlgc(1); JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; jlgc(1); JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define jlgc() /* jl_gc_collect(rand() \% 2) */
+  #define OM_PUSHZ1(A) (A) = NULL; jlgc(); JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; jlgc(); JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; jlgc(); JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; jlgc(); JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; jlgc(); JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; jlgc(); JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; jlgc(); JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; jlgc(); JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; jlgc(); JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; jlgc(); JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
+  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; jlgc(); JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
   #define OM_POP(NN) ctx->pModelicaParser_omcTop->numPushed=ctx->pModelicaParser_omcTop->numPushed-1; JL_GC_POP();
 }
 
