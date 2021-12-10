@@ -76,10 +76,31 @@ static inline jl_value_t* mmc_mk_cons_typed(jl_value_t* T, jl_value_t* head, jl_
   jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
 #endif
 
+
+#if !defined(JL_GC_PUSH8)
+#define JL_GC_PUSH8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)                      \
+  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(8), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
+  jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+#endif
+
+#if !defined(JL_GC_PUSH7)
+#define JL_GC_PUSH7(arg1, arg2, arg3, arg4, arg5, arg6, arg7)                      \
+  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(7), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
+  jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+#endif
+
+#if !defined(JL_GC_PUSH1)
+#define JL_GC_PUSH1(arg1)                      \
+  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(1), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
+  jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+#endif
+
 static inline jl_value_t* SourceInfo__SOURCEINFO(jl_value_t* fileName, int isReadOnly, int lineNumberStart, int columnNumberStart, int lineNumberEnd, int columnNumberEnd, double lastModification)
 {
-  jl_value_t* v1 = NULL, *v2 = NULL, *v3 = NULL, *v4 = NULL, *v5 = NULL, *v6 = NULL, *result = NULL, **vals = NULL;
-  JL_GC_PUSH9(&fileName, &v1, &v2, &v3, &v4, &v5, &v6, &result, vals);
+  jl_value_t* v1 = NULL, *v2 = NULL, *v3 = NULL, *v4 = NULL, *v5 = NULL, *v6 = NULL;
+  jl_value_t *result = NULL;
+  jl_value_t **vals = NULL;
+  JL_GC_PUSH7(&fileName, &v1, &v2, &v3, &v4, &v5, &v6);
   v1 = mmc_mk_bcon(isReadOnly);
   v2 = mmc_mk_icon(lineNumberStart);
   v3 = mmc_mk_icon(columnNumberStart);
@@ -94,12 +115,16 @@ static inline jl_value_t* SourceInfo__SOURCEINFO(jl_value_t* fileName, int isRea
     vals[3] = v3;
     vals[4] = v4;
     vals[5] = v5;
-    vals[6] = v6;   
-    result = jl_call(omc_jl_sourceinfo, vals, 7);
+    vals[6] = v6;
+    {
+      JL_GC_PUSH1(&result)
+      result = jl_call(omc_jl_sourceinfo, vals, 7);
+      JL_GC_POP(); //Pop result. 
+    }
     assert(result);
-    JL_GC_POP();
+    JL_GC_POP(); //Pops vals
   }
-  JL_GC_POP();
+  JL_GC_POP(); //Should pop ret. but maybe allocate it earlier?
   return result;
 }
 

@@ -38,6 +38,7 @@ end
 
 end
 
+#= Warning might be flaky... =#
 @testset "Standard Library" begin
   @test true == begin
     try
@@ -47,6 +48,6 @@ end
       @info("Test failed with the following error:")
       @info "Error:" err
       false
-  end
+    end
   end
 end
