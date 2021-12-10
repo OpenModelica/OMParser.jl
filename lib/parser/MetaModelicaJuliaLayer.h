@@ -76,16 +76,23 @@ static inline jl_value_t* mmc_mk_cons_typed(jl_value_t* T, jl_value_t* head, jl_
   jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
 #endif
 
+
+#if !defined(JL_GC_PUSH8)
+#define JL_GC_PUSH8(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)                      \
+  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(8), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8}; \
+  jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
+#endif
+
 static inline jl_value_t* SourceInfo__SOURCEINFO(jl_value_t* fileName, int isReadOnly, int lineNumberStart, int columnNumberStart, int lineNumberEnd, int columnNumberEnd, double lastModification)
 {
   jl_value_t* v1 = NULL, *v2 = NULL, *v3 = NULL, *v4 = NULL, *v5 = NULL, *v6 = NULL, *result = NULL, **vals = NULL;
-  JL_GC_PUSH9(&fileName, &v1, &v2, &v3, &v4, &v5, &v6, &result, vals);
   v1 = mmc_mk_bcon(isReadOnly);
   v2 = mmc_mk_icon(lineNumberStart);
   v3 = mmc_mk_icon(columnNumberStart);
   v4 = mmc_mk_icon(lineNumberEnd);
   v5 = mmc_mk_icon(columnNumberEnd);
   v6 = mmc_mk_rcon(lastModification);
+  JL_GC_PUSH8(&fileName, &v1, &v2, &v3, &v4, &v5, &v6, &result);
   {
     JL_GC_PUSHARGS(vals, 7);
     vals[0] = fileName;
