@@ -9,7 +9,7 @@ using MetaModelica
 const INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package("OMParser")) * "/../"))
 
 #Shared path
-const SHARED_DIRECTORY_PATH = realpath(string(INSTALLATION_DIRECTORY_PATH, "/lib/ext/shared"))
+const SHARED_DIRECTORY_PATH = realpath(string(INSTALLATION_DIRECTORY_PATH, "/lib/ext"))
 
 struct ParseError
 end
@@ -62,7 +62,7 @@ end
   This function finds precompiled paths 
 """
 function locateSharedParserLibrary(directoryToSearchIn)
-  local res = Glob.glob("*",  directoryToSearchIn)
+  local res = Glob.glob("*",  joinpath(directoryToSearchIn, "shared"))
   local results = []
   for p in res
     push!(results, Glob.glob("*",  joinpath(directoryToSearchIn, p)))
