@@ -1,32 +1,53 @@
 #= Build script for the OpenModelica parser. Currently it is for windows only. =#
 @info "Building OpenModelicaParser A Modelica Parser in Julia"
 import ZipFile
-using HTTP
-#=Extern path=#
-PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
-@static if Sys.iswindows()
-  #= Download shared libraries (DLLS for Windows)=#
-  HTTP.download("https://build.openmodelica.org/omc/msys2/OpenModelicaParser.jl/OpenModelicaParser-dlls.zip", PATH_TO_EXT)
+import Tar
+import Inflate
+
+function extractTar(libraryString; URL)
+  @info "Downloading Linux so file..."
+  HTTP.download(URL, PATH_TO_EXT)
   println(pwd())
   cd(PATH_TO_EXT)
   println(pwd())
   foreach(readdir()) do f
     println("\nObject: ", f)
   end
-  @info "Unzipping archive"
-  r = ZipFile.Reader("OpenModelicaParser-dlls.zip");
-  for f in r.files
-    @info "Filename: \$(f.name)"
-    write(f.name, read(f, String));
+  @info "Decompressing archive.."
+  local res = Inflate.inflate_gzip(string(libraryString, ".tar.gz"))
+  local tarName = string(libraryString, ".tar")
+  write(tarName, res)
+  @info "Done. .tar created."
+  @info "...Extracting the files in the tar..."
+  @info "----------------------------------------"
+  try
+    rm("shared", recursive=true)
+  catch #= Silence on failure =#
   end
-  @info "Unzip done. Closing file descriptor."
-  close(r)
-  @info "Done!"
+  dir = Tar.extract(tarName, "shared")
+  @info dir
+  @info "----------------------------------------"
+  @info "Download external shared libraries done!"
+  foreach(readdir()) do f
+    @info "\nObject: " f
+  end
+  @info "----------------------------------------"
+end
+
+using HTTP
+#=Extern path=#
+PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
+@static if Sys.iswindows()
+  #= Download shared libraries (DLLS for Windows)=#
+  extractTar("windows-latest-library";
+             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-windows-latest/windows-latest-library.tar.gz")
 elseif Sys.islinux()
-  @info "Downloading Linux so file.."
-  HTTP.download("https://build.openmodelica.org/omc/msys2/OpenModelicaParser.jl/libomparse-julia.so", PATH_TO_EXT)
-  @info "Download done!"
-else #= Throw error for other variants =#
+  extractTar("ubuntu-latest-library";
+             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-ubuntu-latest/ubuntu-latest-library.tar.gz")
+elseif Sys.isapple()
+  extractTar("macos-latest-library";
+             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-macos-latest/macos-latest-library.tar.gz")
+else#= Throw error for other variants =#
   @error "Non Linux/Windows systems are currently not supported"
   throw("Unsupported system error")
 end

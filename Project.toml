@@ -5,12 +5,16 @@ version = "0.0.1"
 
 [deps]
 Absyn = "ce2f92e2-a952-11e9-0543-8b443f216f1d"
+CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 ExportAll = "ad2082ca-a69e-11e9-38fa-e96309a31fe4"
 Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 ImmutableList = "4a558cac-c1ed-11e9-20da-3584bcd8709a"
+Inflate = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaModelica = "9d7f2a79-07b5-5542-8b19-c0100dda6b06"
+Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
+TarIterators = "06456b94-f2fb-4c2e-911f-0795f0d2fb0a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
