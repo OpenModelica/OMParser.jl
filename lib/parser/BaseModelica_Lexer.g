@@ -232,6 +232,7 @@ INNER : 'inner';
 T_INPUT : 'input';
 LOOP : 'loop';
 MODEL : 'model';
+MODE  : 'structuralmode';
 T_NOT : 'not' | '!' {
             ModelicaParser_lexerError = ANTLR3_TRUE;
             c_add_source_message(NULL,2, ErrorType_syntax, ErrorLevel_error, "Please use 'not' for logical not since '!' is not a valid Modelica construct.",

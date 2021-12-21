@@ -602,10 +602,11 @@ component_clause returns [void* ast]
   ;
   finally{ OM_POP(11); }
 
-type_prefix returns [void* flow, void* stream, void* parallelism, void* variability, void* direction, void* field]
-@init { fl = 0; st = 0; srd = 0; glb = 0; di = 0; pa = 0; co = 0; in = 0; out = 0; fi = 0; nofi = 0; OM_PUSHZ6($flow, $stream, $parallelism, $variability, $direction, $field); } :
-  (fl=FLOW|st=STREAM)? (srd=T_LOCAL|glb=T_GLOBAL)? (di=DISCRETE|pa=PARAMETER|co=CONSTANT)? in=T_INPUT? out=T_OUTPUT? (fi=FIELD|nofi=NONFIELD)?
+type_prefix returns [void* flow, void* stream, void* parallelism, void* variability, void* direction, void* field, void *isMode]
+@init { fl = 0; st = 0; srd = 0; glb = 0; di = 0; pa = 0; co = 0; in = 0; out = 0; fi = 0; nofi = 0; OM_PUSHZ7($flow, $stream, $parallelism, $variability, $direction, $field, $isMode); } :
+  (fl=FLOW|st=STREAM)? (mo=MODE)? (srd=T_LOCAL|glb=T_GLOBAL)? (di=DISCRETE|pa=PARAMETER|co=CONSTANT)? in=T_INPUT? out=T_OUTPUT? (fi=FIELD|nofi=NONFIELD)?
     {
+      $isMode= mmc_mk_bcon(mo);
       $flow = mmc_mk_bcon(fl);
       $stream = mmc_mk_bcon(st);
       $parallelism = srd ? Absyn__PARLOCAL : glb ? Absyn__PARGLOBAL : Absyn__NON_5fPARALLEL;
