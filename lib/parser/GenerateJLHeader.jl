@@ -40,10 +40,20 @@ import Pkg
 Pkg.Registry.add("General")
 #= Add the Modelica registry =#
 Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
-#= Temporary. Going to add the full version later =#
-Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
-Pkg.add("MetaModelica")
-Pkg.add("ImmutableList")
+
+pkgs = Pkg.installed()
+
+if ! ("Absyn" in keys(pkgs))
+  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
+end
+
+if ! ("MetaModelica" in keys(pkgs))
+  Pkg.add("MetaModelica")
+end
+
+if ! ("ImmutableList" in keys(pkgs))
+  Pkg.add("ImmutableList")
+end
 
 import Absyn
 

@@ -270,7 +270,7 @@ class_specifier2 returns [void* ast, const char *s2]
 | SUBTYPEOF ts=type_specifier
    {
      $ast = Absyn__DERIVED(Absyn__TCOMPLEX(Absyn__IDENT(mmc_mk_scon("polymorphic")),mmc_mk_cons_typed(Absyn_TypeSpec, $ts.ast, mmc_mk_nil()),mmc_mk_nil()),
-                           Absyn__ATTR(MMC_FALSE,MMC_FALSE,Absyn__NON_5fPARALLEL,Absyn__VAR,Absyn__BIDIR,Absyn__NONFIELD,mmc_mk_nil()),mmc_mk_nil(),mmc_mk_none());
+                           Absyn__ATTR(MMC_FALSE,MMC_FALSE,Absyn__NON_5fPARALLEL,Absyn__VAR,Absyn__BIDIR,Absyn__NONFIELD,mmc_mk_nil(), MMC_FALSE),mmc_mk_nil(),mmc_mk_none());
    }
 )
 ;
@@ -306,7 +306,7 @@ overloading returns [void* ast]
 
 base_prefix returns [void* ast]
 @init { OM_PUSHZ7(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, ast); } :
-  tp=type_prefix { ast = Absyn__ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, mmc_mk_nil()); }
+  tp=type_prefix { ast = Absyn__ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, mmc_mk_nil(), tp.isMode); }
   ;
   finally{ OM_POP(7); }
 
@@ -597,7 +597,7 @@ component_clause returns [void* ast]
         }
       }
 
-      ast = Absyn__COMPONENTS(Absyn__ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, arr), $path.ast, clst);
+      ast = Absyn__COMPONENTS(Absyn__ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, arr, tp.isMode), $path.ast, clst);
     }
   ;
   finally{ OM_POP(11); }
