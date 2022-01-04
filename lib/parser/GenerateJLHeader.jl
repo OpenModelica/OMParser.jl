@@ -42,7 +42,7 @@ Pkg.Registry.add("General")
 Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
 
 pkgs = Pkg.installed()
-
+#= Add the latest Absyn from the master branch but only if Absyn is not installed =#
 if ! ("Absyn" in keys(pkgs))
   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
 end
