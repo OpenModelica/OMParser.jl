@@ -124,8 +124,26 @@ const installedLibPath = if _libpath != nothing
     libpath
 end
 
-function parseFile(fileName::String, acceptedGram::Int64 = 1)::Absyn.Program
-  local res = ccall((:parseFile, installedLibPath), Any, (String, Int64), fileName, acceptedGram)
+# langStd:
+# ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
+# ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
+# acceptedGram:
+# 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+function parseString(contents::String, interactiveFileName::String = "<default>", acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+  local res = ccall((:parseString, installedLibPath), Any, (String, String, Int64, Int64), contents, interactiveFileName, acceptedGram, languageStandard)
+  if res == nothing
+    throw(ParseError())
+  end
+  res
+end
+
+# langStd:
+# ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
+# ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
+# acceptedGram:
+# 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+  local res = ccall((:parseFile, installedLibPath), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
   if res == nothing
     throw(ParseError())
   end
