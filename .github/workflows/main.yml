@@ -28,7 +28,7 @@ jobs:
       with:
         update: false
         platform-check-severity: warn
-        install: base-devel mingw-w64-x86_64-toolchain
+        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
     - name: set git to use LF on Windows
       if: contains(matrix.sys.os, 'windows')

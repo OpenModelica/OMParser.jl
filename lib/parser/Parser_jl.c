@@ -57,7 +57,7 @@ pthread_key_t modelicaParserKey;
 
 static void make_key()
 {
-  pthread_key_create(&modelicaParserKey,NULL);
+  pthread_key_create(&modelicaParserKey, NULL);
 }
 
 static void lexNoRecover(pANTLR3_LEXER lexer)
@@ -85,9 +85,9 @@ static void* noRecoverFromMismatchedSet(pANTLR3_BASE_RECOGNIZER recognizer, pANT
 static void* noRecoverFromMismatchedToken(pANTLR3_BASE_RECOGNIZER recognizer, ANTLR3_UINT32 ttype, pANTLR3_BITSET_LIST follow)
 {
   pANTLR3_PARSER        parser;
-  pANTLR3_TREE_PARSER        tparser;
-  pANTLR3_INT_STREAM        is;
-  void          * matchedSymbol;
+  pANTLR3_TREE_PARSER   tparser;
+  pANTLR3_INT_STREAM    is;
+  void                 *matchedSymbol;
 
   // Invoke the debugger event if there is a debugger listening to us
   //
@@ -185,10 +185,10 @@ static void handleLexerError(pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UINT8 *
 /* Error handling based on antlr3baserecognizer.c */
 static void handleParseError(pANTLR3_BASE_RECOGNIZER recognizer, pANTLR3_UINT8 * tokenNames)
 {
-  pANTLR3_PARSER      parser;
+  pANTLR3_PARSER         parser;
   pANTLR3_EXCEPTION      ex;
   pANTLR3_COMMON_TOKEN   preToken,nextToken;
-  pANTLR3_TOKEN_STREAM tokenStream;
+  pANTLR3_TOKEN_STREAM   tokenStream;
   int type;
   const char *token_text[3] = {0,0,0};
   int p_offset, n_offset, p_line, n_line;
@@ -274,13 +274,11 @@ static void* parseStream(pANTLR3_INPUT_STREAM input)
   void* lxr = 0;
   void* res = NULL;
 
-  jl_gc_enable(1);
-
   OpenModelica_initMetaModelicaJuliaLayer();
   OpenModelica_initAbsynReferences();
-
+  /* TODO support other lexers based on the flags */
   lxr = Modelica_3_LexerNew(input);
-  if (lxr == NULL ) { fprintf(stderr, "Unable to create the lexer due to malloc() failure1\n"); fflush(stderr); exit(ANTLR3_ERR_NOMEM); }
+  if (lxr == NULL) { fprintf(stderr, "Unable to create the lexer due to malloc() failure1\n"); fflush(stderr); exit(ANTLR3_ERR_NOMEM); }
   pLexer = ((pModelica_3_Lexer)lxr)->pLexer;
   pLexer->rec->displayRecognitionError = handleLexerError;
   pLexer->recover = lexNoRecover;
@@ -324,12 +322,10 @@ static void* parseStream(pANTLR3_INPUT_STREAM input)
   input->close(input);
   input = (pANTLR3_INPUT_STREAM) NULL;
 
-  jl_gc_enable(1);
-
   return res;
 }
 
-DLLDirection jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar)
+DLLDirection jl_value_t* parseString(jl_value_t* contents, jl_value_t* interactiveFileName, int acceptedGrammar, int langStd)
 {
   pANTLR3_UINT8               fName;
   pANTLR3_INPUT_STREAM        input;
@@ -345,20 +341,60 @@ DLLDirection jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar)
   pthread_once(&parser_once_create_key,make_key);
   pthread_setspecific(modelicaParserKey,&members);
 
+  members.encoding = "UTF-8";
+  members.filename_C = interactiveFileName;
+  members.filename_C_testsuiteFriendly = interactiveFileName;
+  members.filename_OMC = interactiveFileName;
+  members.flags = flags;
+  members.readonly = 1;
+  members.langStd = langStd;
+  members.first_comment = 0;
 
-  jl_gc_enable(1);
+  fName  = (pANTLR3_UINT8)jl_string_data(interactiveFileName);
+#if defined(ANTLR_C_VERSION_3_2)
+  input  = antlr3NewAsciiStringInPlaceStream((pANTLR3_UINT8)jl_string_data(contents), strlen(jl_string_data(contents)), fName);
+#elif defined(ANTLR_C_VERSION_3_4)
+  input  = antlr3StringStreamNew((pANTLR3_UINT8)jl_string_data(contents), ANTLR3_ENC_8BIT, strlen(jl_string_data(contents)), fName);
+#else
+  #error "Neither ANTLR_C_VERSION_3_2 or ANTLR_C_VERSION_3_4 is defined. Could not find the ANTLR 3.x C runtime!"
+#endif
+  if ( input == NULL ) {
+    fprintf(stderr, "Unable to open inteactive file %s with contents: \n%s\n", jl_string_data(interactiveFileName), jl_string_data(contents)); fflush(stderr);
+    return jl_nothing;
+  }
+  return parseStream(input);
+}
+
+
+DLLDirection jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar, int langStd)
+{
+  pANTLR3_UINT8               fName;
+  pANTLR3_INPUT_STREAM        input;
+
+  parser_members members;
+
+  int flags = PARSE_MODELICA;
+  if(acceptedGrammar == 2) flags |= PARSE_META_MODELICA;
+  else if(acceptedGrammar == 3) flags |= PARSE_PARMODELICA;
+  else if(acceptedGrammar == 4) flags |= PARSE_OPTIMICA;
+  else if(acceptedGrammar == 5) flags |= PARSE_PDEMODELICA;
+
+  pthread_once(&parser_once_create_key,make_key);
+  pthread_setspecific(modelicaParserKey,&members);
 
   members.encoding = "UTF-8";
   members.filename_C = fileName;
   members.filename_C_testsuiteFriendly = fileName;
   members.filename_OMC = fileName;
   members.flags = flags;
-  members.readonly = 1;
-  omc_first_comment = 0;
+  members.readonly = 0;
+  members.langStd = langStd;
+  members.first_comment = 0;
 
   fName  = (pANTLR3_UINT8)jl_string_data(fileName);
   input  = antlr3AsciiFileStreamNew(fName);
   if ( input == NULL ) {
+    fprintf(stderr, "Unable to open file %s!\n", jl_string_data(fileName)); fflush(stderr);
     return jl_nothing;
   }
   return parseStream(input);
