@@ -59,11 +59,12 @@ function _locateSharedParserLibrary(directoryToSearchIn)
 end
 
 """
-  This function finds precompiled paths 
+  This function finds precompiled paths
 """
 function locateSharedParserLibrary(directoryToSearchIn)
   local res = Glob.glob("*",  joinpath(directoryToSearchIn, "shared"))
   local results = []
+  println()
   for p in res
     push!(results, Glob.glob("*",  joinpath(directoryToSearchIn, p)))
   end
@@ -75,7 +76,7 @@ function locateSharedParserLibrary(directoryToSearchIn)
           return p
         end
       end
-    end    
+    end
   elseif Sys.iswindows()
     for r in results
       for p in r
@@ -129,7 +130,10 @@ end
 # ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
 # acceptedGram:
 # 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
-function parseString(contents::String, interactiveFileName::String = "<default>", acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+function parseString(contents::String,
+                     interactiveFileName::String = "<default>",
+                     acceptedGram::Int64 = 1,
+                     languageStandard::Int64 = 1000)::Absyn.Program
   local res = ccall((:parseString, installedLibPath), Any, (String, String, Int64, Int64), contents, interactiveFileName, acceptedGram, languageStandard)
   if res == nothing
     throw(ParseError())
@@ -142,13 +146,12 @@ end
 # ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
 # acceptedGram:
 # 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
-function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
   local res = ccall((:parseFile, installedLibPath), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
   if res == nothing
     throw(ParseError())
   end
   res
 end
-
 
 end
