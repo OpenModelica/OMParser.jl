@@ -1,5 +1,7 @@
 using Test
 import OMParser
+import Pkg
+Pkg.instantiate()
 
 @testset "Simple standalone modules" begin
 
@@ -13,7 +15,7 @@ import OMParser
       false
     end
   end
-  
+
   @test true == begin
     try
       res = OMParser.parseFile("Influenza.mo")
@@ -24,7 +26,7 @@ import OMParser
       false
     end
   end
-  
+
   @test true == begin
     try
       res = OMParser.parseFile("Casc12800.mo")
@@ -35,7 +37,7 @@ import OMParser
       false
     end
   end
-  
+
 end
 
 @testset "Test OMCompiler.jl specific extensions" begin

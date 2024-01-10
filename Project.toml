@@ -17,6 +17,7 @@ Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 TarIterators = "06456b94-f2fb-4c2e-911f-0795f0d2fb0a"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 
 [compat]
 julia = "1.10"

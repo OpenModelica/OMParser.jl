@@ -1,6 +1,6 @@
 module OMParser
 
-import Absyn, MetaModelica, ImmutableList
+import Absyn, ImmutableList
 #= For searching files.. =#
 import Glob
 using MetaModelica
