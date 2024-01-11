@@ -60,8 +60,6 @@ jobs:
 
     - name:  Test
       run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
-      with:
-        version: "1.10.0"
 
     - name: upload library
       uses: actions/upload-artifact@v2
