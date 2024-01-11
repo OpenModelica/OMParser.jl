@@ -65,7 +65,7 @@ jobs:
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
 
     - name:  Run the testsuite
-      uses: julia-actions/julia-runtest@v1
+      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")
       with:
         version: "1.10.0"
 
