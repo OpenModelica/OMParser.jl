@@ -3,6 +3,16 @@
 import ZipFile
 import Tar
 import Inflate
+import Pkg
+pkgs = Pkg.installed()
+
+if ! ("MetaModelica" in keys(pkgs))
+  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"))
+end
+if ! ("Absyn" in keys(pkgs))
+  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
+  Pkg.develop(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
+end
 
 function extractTar(libraryString; URL)
   @info "Downloading Linux so file..."

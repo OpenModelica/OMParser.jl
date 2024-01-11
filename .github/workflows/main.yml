@@ -19,10 +19,15 @@ jobs:
         shell: ${{ matrix.sys.shell }}
     name: building OMParser.jl/lib/parser
     steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+    - run: java --version
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
-        version: "1.7.1"
+        version: "1.10.0"
     - name: setup msys2 environment
       uses: msys2/setup-msys2@v2
       with:
@@ -47,10 +52,17 @@ jobs:
         cd ../build/lib
         tar -czvf ${{matrix.sys.os}}-library.tar.gz *
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
-    - name:  Run the testsuite
-      uses: julia-actions/julia-runtest@v1
+
+    - name: Build
+      # Always use bash to avoid having to escape quotes for Windows
+      shell: bash
+      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(;verbose = true);Pkg.instantiate(); Pkg.resolve()'
+
+    - name:  Test
+      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
       with:
-        version: "1.7.1"
+        version: "1.10.0"
+
     - name: upload library
       uses: actions/upload-artifact@v2
       with:

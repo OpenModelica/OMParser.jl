@@ -1,5 +1,5 @@
 # Goal. Make a release workflow so that we can built artificats and use them quickly
-name: Manual Release 
+name: Manual Release
 
 on:
   workflow_dispatch:
@@ -33,14 +33,14 @@ jobs:
     - name: setup julia environment
       uses: julia-actions/setup-julia@v1
       with:
-        version: "1.7.0"
+        version: "1.10.0"
 
     - name: setup msys2 environment
       uses: msys2/setup-msys2@v2
       with:
         update: false
         platform-check-severity: warn
-        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
+        install: java autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
 
     - name: set git to use LF on Windows
@@ -53,6 +53,7 @@ jobs:
 
     - name: configure the library and build
       run: |
+        which java
         which gcc
         gcc --version
         cd lib/parser
@@ -64,9 +65,9 @@ jobs:
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
 
     - name:  Run the testsuite
-      uses: julia-actions/julia-runtest@v1
+      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")
       with:
-        version: "1.7.0"
+        version: "1.10.0"
 
     - name: upload library
       uses: actions/upload-artifact@v2
