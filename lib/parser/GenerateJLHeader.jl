@@ -42,18 +42,20 @@ Pkg.Registry.add("General")
 Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
 
 pkgs = Pkg.installed()
+if ! ("MetaModelica" in keys(pkgs))
+  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"))
+end
+
 #= Add the latest Absyn from the master branch but only if Absyn is not installed =#
 if ! ("Absyn" in keys(pkgs))
   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
 end
 
-if ! ("MetaModelica" in keys(pkgs))
-  Pkg.add("MetaModelica")
-end
-
 if ! ("ImmutableList" in keys(pkgs))
   Pkg.add("ImmutableList")
 end
+
+Pkg.resolve()
 
 import Absyn
 
@@ -157,7 +159,7 @@ end
   Generate the program external header for Julia.
   @author johti17, based on code by adrpo.
 """
-function programExternalHeaderJulia(allDataTypes, moduleName)  
+function programExternalHeaderJulia(allDataTypes, moduleName)
   local buffer = IOBuffer()
   println(buffer, COPYRIGHT_HEADER)
   println(buffer, "/* Automatically generated header for external MetaModelica functions */")
@@ -227,7 +229,7 @@ function generateJL_Values(allDataTypes)
       println(buffer, funcStr)
       println(buffer, valueStr)
     end
-  end    
+  end
   String(take!(buffer))
 end
 
@@ -267,14 +269,14 @@ function generateJL_Asserts(allDataTypes, moduleName)
       #= Get <Module>_<Uniontype>_<Record> =#
       local qualifiedName = getSuperTypePath(dataType)
       #= Get qualified path for basic datatype =#
-      local baseTypeStr = components[2]        
+      local baseTypeStr = components[2]
       local assertStr1 = "assert(($qualifiedName = jl_get_function($(moduleName), \"$(baseTypeStr)\")));"
       local assertStr2 = "assert(($(qualifiedName)_type = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
       println(buffer, assertStr1)
       println(buffer, assertStr2)
       #=TODO is the double underscore important?=#
     end
-  end  
+  end
   return String(take!(buffer))
 end
 
@@ -289,12 +291,12 @@ This is followed by a function definition
 """
 function generateExternalDeclarations(allSuperTypes)
   local buffer = IOBuffer()
-  println(buffer, "/* Extern declarations */")  
+  println(buffer, "/* Extern declarations */")
   for superType in allSuperTypes
-    local subTypes = subtypes(superType) 
+    local subTypes = subtypes(superType)
     local components = split(string(superType), ".")
     local qualifiedName = getQualifiedName(components)
-    if length(components) < 2 #= Some components are to small to include=#      
+    if length(components) < 2 #= Some components are to small to include=#
       continue
     end
     local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
@@ -305,7 +307,7 @@ function generateExternalDeclarations(allSuperTypes)
     for subType in subTypes
       local components = split(string(subType), ".")
       local qualifiedName = getSuperTypePath(subType)
-      local baseTypeStr = components[2]        
+      local baseTypeStr = components[2]
       local functionName = string("extern jl_function_t *", qualifiedName, ";")
       local typeName = string("extern jl_function_t *", qualifiedName, "_type", ";")
       println(buffer, functionName)
@@ -338,7 +340,7 @@ function generateExternalDeclarations(allSuperTypes)
         println(buffer, arrayDecl)
         println(buffer, returnStmt)
         println(buffer, staticFuncEpilog)
-      end        
+      end
     end
     println(buffer, "/* End External declarations for the uniontype" * string(superType) * " */")
   end

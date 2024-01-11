@@ -1,9 +1,10 @@
 module OMParser
 
+using MetaModelica
+
 import Absyn, ImmutableList
 #= For searching files.. =#
 import Glob
-using MetaModelica
 
 #import Settings
 const INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package("OMParser")) * "/../"))

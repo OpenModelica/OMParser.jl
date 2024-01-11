@@ -1,10 +1,8 @@
 using Test
+
 import OMParser
-import Pkg
-Pkg.instantiate()
 
 @testset "Simple standalone modules" begin
-
   @test true == begin
     try
       res = OMParser.parseFile("HelloWorld.mo")

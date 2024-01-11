@@ -1,5 +1,5 @@
 # Goal. Make a release workflow so that we can built artificats and use them quickly
-name: Manual Release 
+name: Manual Release
 
 on:
   workflow_dispatch:
@@ -40,7 +40,7 @@ jobs:
       with:
         update: false
         platform-check-severity: warn
-        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
+        install: java autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
 
     - name: set git to use LF on Windows
@@ -53,6 +53,7 @@ jobs:
 
     - name: configure the library and build
       run: |
+        which java
         which gcc
         gcc --version
         cd lib/parser
