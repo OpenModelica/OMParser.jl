@@ -49,7 +49,16 @@ jobs:
         git config --system core.autocrlf false
         git config --system core.eol lf
 
-    - uses: actions/checkout@v2
+    - name: Install autotools if the system is macOS
+      if: contains(matrix.sys.os, 'macOS')
+      run: |
+       brew install autoconf
+       brew install automake
+       brew install m4
+       brew install pkg-config
+       brew install libtool
+
+    - uses: actions/checkout@v3
 
     - name: configure the library and build
       run: |
@@ -64,10 +73,11 @@ jobs:
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
 
     - name:  Run the testsuite
-      run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
+      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
+
       with:
         name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
@@ -76,7 +86,7 @@ jobs:
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "Latest-${{matrix.sys.os}}"
+        automatic_release_tag: "$(julia --version)-${{matrix.sys.os}}"
         draft: false
         prerelease: true
         files: |
