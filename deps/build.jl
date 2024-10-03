@@ -50,11 +50,11 @@ PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
 
 
 @static if v"1.10.0" > VERSION
-  throw("precompilation is currently only supported for Julia version 1.10 or greater. For prior versions of Julia please download and extract the libraries available at https://github.com/OpenModelica/OMParser.jl/releases")
+  throw("Building OMParser with precompiled shared libraries is currently only supported for Julia version 1.10 or greater. For prior versions of Julia please download and extract the libraries available at https://github.com/OpenModelica/OMParser.jl/releases or build the libraries in the lib subdirectory.")
 end
 
 @static if Sys.iswindows()
-  #= Download shared libraries (DLLS for Windows)=#
+  #= Download the shared libraries (DLLS for Windows) =#
   extractTar("windows-latest-library";
              URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-windows-latest/windows-latest-library.tar.gz")
 elseif Sys.islinux()

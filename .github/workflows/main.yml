@@ -61,7 +61,7 @@ jobs:
       run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
