@@ -3,6 +3,9 @@ name: Manual Release
 on:
   workflow_dispatch:
     inputs:
+      name: releaseName
+      type: string
+      description: Name of release
     name:
       # Friendly description to be shown in the UI instead of 'name'
       description: 'Trigger a release built'
@@ -85,7 +88,7 @@ jobs:
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "$(julia --version)-${{matrix.sys.os}}"
+        automatic_release_tag: "${{github.event.inputs.releaseName}${{matrix.sys.os}}"
         draft: false
         prerelease: true
         files: |
