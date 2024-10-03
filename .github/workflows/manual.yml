@@ -85,7 +85,7 @@ jobs:
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "${{github.events.inputs.myInput}${{matrix.sys.os}}"
+        automatic_release_tag: "${{github.events.inputs.myInput}}${{matrix.sys.os}}"
         draft: false
         prerelease: true
         files: |
