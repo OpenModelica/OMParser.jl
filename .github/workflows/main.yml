@@ -24,7 +24,7 @@ jobs:
         distribution: 'zulu'
         java-version: '21'
     - name: setup julia environment
-      uses: julia-actions/setup-julia@v1
+      uses: julia-actions/setup-julia@v2
       with:
         version: "1.10.0"
     - name: setup msys2 environment
@@ -34,12 +34,23 @@ jobs:
         platform-check-severity: warn
         install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
+
     - name: set git to use LF on Windows
       if: contains(matrix.sys.os, 'windows')
       run: |
         git config --system core.autocrlf false
         git config --system core.eol lf
-    - uses: actions/checkout@v2
+
+    - name: Install autotools if the system is macOS
+      if: contains(matrix.sys.os, 'macOS')
+      run: |
+       brew install autoconf
+       brew install automake
+       brew install m4
+       brew install pkg-config
+       brew install libtool
+
+    - uses: actions/checkout@v3
     - name: configure the library and build
       run: |
         which gcc
@@ -61,7 +72,7 @@ jobs:
       run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: parser-library
         path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
