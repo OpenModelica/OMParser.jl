@@ -49,7 +49,7 @@ using HTTP
 PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
 
 
-@static if v"1.10.0" < VERSION
+@static if v"1.10.0" > VERSION
   throw("precompilation is currently only supported for Julia version 1.10 or greater. For prior versions of Julia please download and extract the libraries available at https://github.com/OpenModelica/OMParser.jl/releases")
 end
 
