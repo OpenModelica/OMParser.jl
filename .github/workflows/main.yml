@@ -24,7 +24,7 @@ jobs:
         distribution: 'zulu'
         java-version: '21'
     - name: setup julia environment
-      uses: julia-actions/setup-julia@v1
+      uses: julia-actions/setup-julia@v3
       with:
         version: "1.10.0"
     - name: setup msys2 environment
@@ -42,7 +42,7 @@ jobs:
         git config --system core.eol lf
 
     - name: Install autotools if the system is macOS
-      if: contains(matrix.sys.os, 'windows')
+      if: contains(matrix.sys.os, 'macOS')
       run: |
        brew install autoconf
        brew install automake
