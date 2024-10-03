@@ -64,7 +64,7 @@ jobs:
         mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
 
     - name:  Run the testsuite
-      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
+      run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
       uses: actions/upload-artifact@v4

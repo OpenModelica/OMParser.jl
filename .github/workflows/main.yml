@@ -34,6 +34,9 @@ jobs:
         platform-check-severity: warn
         install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
         path-type: inherit # to find julia!
+    - name: Install autoconf if the target system is macOS
+      run: |
+      brew install autoconf automake libtool
     - name: set git to use LF on Windows
       if: contains(matrix.sys.os, 'windows')
       run: |
