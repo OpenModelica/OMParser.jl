@@ -1,4 +1,3 @@
-# Goal. Make a release workflow so that we can built artificats and use them quickly
 name: Manual Release
 
 on:
