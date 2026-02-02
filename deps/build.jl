@@ -1,4 +1,4 @@
-#= Build script for the OpenModelica parser. Currently it is for windows only. =#
+#= Build script for the OpenModelica parser. =#
 @info "Building OpenModelicaParser A Modelica Parser in Julia"
 import ZipFile
 import Tar
@@ -15,7 +15,7 @@ if ! ("Absyn" in keys(pkgs))
 end
 
 function extractTar(libraryString; URL)
-  @info "Downloading Linux so file..."
+  @info "Downloading shared library from: $URL"
   HTTP.download(URL, PATH_TO_EXT)
   println(pwd())
   cd(PATH_TO_EXT)
@@ -48,22 +48,33 @@ using HTTP
 #=Extern path=#
 PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
 
+#= Determine Julia version for library selection =#
+const JULIA_MAJOR_MINOR = "$(VERSION.major).$(VERSION.minor)"
+@info "Detected Julia version: $JULIA_MAJOR_MINOR"
 
 @static if v"1.10.0" > VERSION
   throw("Building OMParser with precompiled shared libraries is currently only supported for Julia version 1.10 or greater. For prior versions of Julia please download and extract the libraries available at https://github.com/OpenModelica/OMParser.jl/releases or build the libraries in the lib subdirectory.")
 end
 
+#= Construct platform and Julia version specific library names =#
+function getLibraryURL(os_name::String)
+  local lib_name = "$(os_name)-julia-$(JULIA_MAJOR_MINOR)-library"
+  local release_tag = "Latest-$(os_name)-julia-$(JULIA_MAJOR_MINOR)"
+  local url = "https://github.com/OpenModelica/OMParser.jl/releases/download/$(release_tag)/$(lib_name).tar.gz"
+  return (lib_name, url)
+end
+
 @static if Sys.iswindows()
   #= Download the shared libraries (DLLS for Windows) =#
-  extractTar("windows-latest-library";
-             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-windows-latest/windows-latest-library.tar.gz")
+  local (lib_name, url) = getLibraryURL("windows-latest")
+  extractTar(lib_name; URL=url)
 elseif Sys.islinux()
-  extractTar("ubuntu-latest-library";
-             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-ubuntu-latest/ubuntu-latest-library.tar.gz")
+  local (lib_name, url) = getLibraryURL("ubuntu-latest")
+  extractTar(lib_name; URL=url)
 elseif Sys.isapple()
-  extractTar("macos-latest-library";
-             URL="https://github.com/OpenModelica/OMParser.jl/releases/download/Latest-macos-latest/macos-latest-library.tar.gz")
-else#= Throw error for other variants =#
-  @error "Non Linux/Windows systems are currently not supported"
+  local (lib_name, url) = getLibraryURL("macos-latest")
+  extractTar(lib_name; URL=url)
+else
+  @error "Non Linux/Windows/macOS systems are currently not supported"
   throw("Unsupported system error")
 end
