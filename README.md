@@ -46,11 +46,3 @@ sed -i.bak 's/ db/ # db/g' /etc/nsswitch.conf
 ````
 
 Then start MSYS2 MinGW terminal and then follow the instructions for Linux/Mac.
-
-
-
-
-
-
-
-
