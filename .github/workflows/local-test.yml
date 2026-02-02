@@ -1,0 +1,72 @@
+name: Local Test (act)
+
+# This workflow is designed to be run locally with act (nektos/act)
+# It only targets Ubuntu since act does not support macOS runners
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ modprod2026 ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        julia-version: ['1.10', '1.11', '1.12']
+    name: Build parser (Julia ${{ matrix.julia-version }})
+    steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+
+    - name: Setup Julia
+      uses: julia-actions/setup-julia@v2
+      with:
+        version: ${{ matrix.julia-version }}
+
+    - uses: actions/checkout@v4
+
+    - name: Install build dependencies
+      run: |
+        apt-get update
+        apt-get install -y build-essential autoconf automake libtool m4 pkg-config
+
+    - name: Configure and build parser library
+      run: |
+        which gcc
+        gcc --version
+        cd lib/parser
+        autoconf
+        ./configure
+        make
+        cd ../build/lib
+        tar -czvf ubuntu-julia-${{ matrix.julia-version }}-library.tar.gz *
+        mv ubuntu-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
+
+    - name: Build Julia package
+      run: |
+        julia --compiled-modules=no --color=yes --project -e '
+          import Pkg
+          Pkg.Registry.add("General")
+          Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"))
+          Pkg.build(verbose=true)
+          Pkg.instantiate()
+          Pkg.resolve()
+        '
+
+    - name: Test
+      run: |
+        julia --color=yes --project -e '
+          import Pkg
+          Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
+          Pkg.test("Absyn")
+          Pkg.test("OMParser")
+        '
+
+    - name: Upload library
+      uses: actions/upload-artifact@v4
+      with:
+        name: parser-library-julia-${{ matrix.julia-version }}
+        path: ${{ github.workspace }}/ubuntu-julia-${{ matrix.julia-version }}-library.tar.gz

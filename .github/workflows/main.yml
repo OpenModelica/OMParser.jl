@@ -14,10 +14,11 @@ jobs:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
+        julia-version: ['1.10', '1.11', '1.12']
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
-    name: building OMParser.jl/lib/parser
+    name: Build parser (${{ matrix.sys.os }}, Julia ${{ matrix.julia-version }})
     steps:
     - uses: actions/setup-java@v4
       with:
@@ -26,7 +27,7 @@ jobs:
     - name: setup julia environment
       uses: julia-actions/setup-julia@v2
       with:
-        version: "1.10.0"
+        version: ${{ matrix.julia-version }}
     - name: setup msys2 environment
       uses: msys2/setup-msys2@v2
       with:
@@ -50,7 +51,7 @@ jobs:
        brew install pkg-config
        brew install libtool
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: configure the library and build
       run: |
         which gcc
@@ -60,8 +61,8 @@ jobs:
         ./configure
         make
         cd ../build/lib
-        tar -czvf ${{matrix.sys.os}}-library.tar.gz *
-        mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
+        tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
+        mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
 
     - name: Build
       # Always use bash to avoid having to escape quotes for Windows
@@ -72,7 +73,7 @@ jobs:
       run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: parser-library
-        path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
+        name: parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}
+        path: ${{ github.workspace }}/${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz

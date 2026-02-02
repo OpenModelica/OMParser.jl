@@ -14,8 +14,6 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
-    name: building OMParser.jl/lib/parser
-
     runs-on: ${{ matrix.sys.os }}
     strategy:
       matrix:
@@ -23,17 +21,20 @@ jobs:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
+        julia-version: ['1.10', '1.11', '1.12']
 
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
 
+    name: Build parser (${{ matrix.sys.os }}, Julia ${{ matrix.julia-version }})
+
     steps:
 
     - name: setup julia environment
-      uses: julia-actions/setup-julia@v1
+      uses: julia-actions/setup-julia@v2
       with:
-        version: "1.10.0"
+        version: ${{ matrix.julia-version }}
 
     - name: setup msys2 environment
       uses: msys2/setup-msys2@v2
@@ -58,7 +59,7 @@ jobs:
        brew install pkg-config
        brew install libtool
 
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: configure the library and build
       run: |
@@ -69,25 +70,24 @@ jobs:
         ./configure
         make
         cd ../build/lib
-        tar -czvf ${{matrix.sys.os}}-library.tar.gz *
-        mv ${{matrix.sys.os}}-library.tar.gz '${{github.workspace}}/'.
+        tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
+        mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
 
-    - name:  Run the testsuite
-      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
+    - name: Run the testsuite
+      run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
-      uses: actions/upload-artifact@v3
-
+      uses: actions/upload-artifact@v4
       with:
-        name: parser-library
-        path: ${{github.workspace}}/${{matrix.sys.os}}-library.tar.gz
+        name: parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}
+        path: ${{ github.workspace }}/${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz
 
     - name: "Perform Release"
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "${{github.events.inputs.myInput}}${{matrix.sys.os}}"
+        automatic_release_tag: "${{ github.event.inputs.myInput }}-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}"
         draft: false
         prerelease: true
         files: |
-          ${{matrix.sys.os}}-library.tar.gz
+          ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz
