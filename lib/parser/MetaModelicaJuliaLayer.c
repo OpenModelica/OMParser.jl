@@ -14,13 +14,18 @@ jl_value_t* omc_jl_nil = NULL;
 
 void OpenModelica_initMetaModelicaJuliaLayer()
 {
-  jl_eval_string("using MetaModelica");
-  jl_module_t *MetaModelicaModule = (jl_module_t*)jl_eval_string("MetaModelica");
-  jl_eval_string("using ImmutableList");
-  jl_module_t *ImmutableList = (jl_module_t*)jl_eval_string("ImmutableList");
-  jl_module_t *ListDefModule = (jl_module_t*)jl_eval_string("ImmutableList.ListDef");
-  jl_eval_string("using OMParser");
-  jl_module_t *parserModule = (jl_module_t*)jl_eval_string("OMParser");
+  // Skip if already initialized
+  if (omc_jl_some != NULL) return;
+
+  // Use Base.require instead of 'using' to avoid creating globals in Main.
+  // This is required for Julia 1.12+ precompilation compatibility.
+  jl_module_t *MetaModelicaModule = (jl_module_t*)jl_eval_string(
+    "Base.require(Base.PkgId(Base.UUID(\"9d7f2a79-07b5-5542-8b19-c0100dda6b06\"), \"MetaModelica\"))");
+  jl_module_t *ImmutableList = (jl_module_t*)jl_eval_string(
+    "Base.require(Base.PkgId(Base.UUID(\"4a558cac-c1ed-11e9-20da-3584bcd8709a\"), \"ImmutableList\"))");
+  jl_module_t *ListDefModule = (jl_module_t*)jl_get_global(ImmutableList, jl_symbol("ListDef"));
+  jl_module_t *parserModule = (jl_module_t*)jl_eval_string(
+    "Base.require(Base.PkgId(Base.UUID(\"11f87224-cae7-4e99-a924-e50d12f62c59\"), \"OMParser\"))");
 
   if (!MetaModelicaModule)
   {
