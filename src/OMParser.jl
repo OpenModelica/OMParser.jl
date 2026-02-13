@@ -3,13 +3,16 @@ module OMParser
 using MetaModelica
 
 import Absyn, ImmutableList
-#= For searching files.. =#
+
 import Glob
 
-#import Settings
+"""
+The path were the package is located.
+"""
 const INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package("OMParser")) * "/../"))
 
-#Shared path
+"""
+"""
 const SHARED_DIRECTORY_PATH = realpath(string(INSTALLATION_DIRECTORY_PATH, "/lib/ext"))
 
 struct ParseError
@@ -48,7 +51,7 @@ function _locateSharedParserLibrary(directoryToSearchIn)
         end
       end
     end
-  else #= Assume apple=#
+  else #= Assume apple =#
     for r in results
       for p in r
         if occursin("libomparse-julia.dylib", p)
@@ -126,11 +129,13 @@ const installedLibPath = if _libpath != nothing
     libpath
 end
 
-# langStd:
-# ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
-# ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
-# acceptedGram:
-# 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+"""
+langStd:
+ ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
+ ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
+ acceptedGram:
+ 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+"""
 function parseString(contents::String,
                      interactiveFileName::String = "<default>",
                      acceptedGram::Int64 = 1,
@@ -142,11 +147,24 @@ function parseString(contents::String,
   res
 end
 
-# langStd:
-# ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
-# ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
-# acceptedGram:
-# 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+"""
+```
+parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
+```
+
+Parse a file according to a grammar and a language standard.
+
+ Language standard mapping for the `languageStandard` argument:
+```
+ ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
+ ("3.4", 34), ("3.5", 35), ("latest",1000), ("experimental", 9999)
+```
+
+Grammar mapping for the `acceptedGram` variable:
+```
+ 1=Modelica, 2=MetaModelica, 3=ParModelica, 4=Optimica, 5=PdeModelica
+```
+"""
 function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
   local res = ccall((:parseFile, installedLibPath), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
   if res == nothing

@@ -51,6 +51,9 @@ end
   end
 end
 
+#= Tests to see if the parser can handle the MM language.=#
+include("metaModelicaTests.jl")
+
 #= Warning might be flaky... =#
 @testset "Standard Library" begin
   @test true == begin

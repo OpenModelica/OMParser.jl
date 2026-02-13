@@ -48,6 +48,7 @@
 #include "OpenModelicaJuliaHeader.h"
 
 #include <Modelica_3_Lexer.h>
+#include <MetaModelica_Lexer.h>
 #include <ModelicaParser.h>
 #include <antlr3intstream.h>
 #include <antlr3config.h>
@@ -276,13 +277,26 @@ static void* parseStream(pANTLR3_INPUT_STREAM input)
 
   OpenModelica_initMetaModelicaJuliaLayer();
   OpenModelica_initAbsynReferences();
-  /* TODO support other lexers based on the flags */
-  lxr = Modelica_3_LexerNew(input);
-  if (lxr == NULL) { fprintf(stderr, "Unable to create the lexer due to malloc() failure1\n"); fflush(stderr); exit(ANTLR3_ERR_NOMEM); }
-  pLexer = ((pModelica_3_Lexer)lxr)->pLexer;
-  pLexer->rec->displayRecognitionError = handleLexerError;
-  pLexer->recover = lexNoRecover;
-  tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(((pModelica_3_Lexer)lxr)));
+
+  /* Disable GC during parsing to prevent collection of intermediate AST nodes */
+  jl_gc_enable(0);
+
+  /* Select lexer based on grammar flags */
+  if (metamodelica_enabled()) {
+    lxr = MetaModelica_LexerNew(input);
+    if (lxr == NULL) { fprintf(stderr, "Unable to create the MetaModelica lexer due to malloc() failure\n"); fflush(stderr); exit(ANTLR3_ERR_NOMEM); }
+    pLexer = ((pMetaModelica_Lexer)lxr)->pLexer;
+    pLexer->rec->displayRecognitionError = handleLexerError;
+    pLexer->recover = lexNoRecover;
+    tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(((pMetaModelica_Lexer)lxr)));
+  } else {
+    lxr = Modelica_3_LexerNew(input);
+    if (lxr == NULL) { fprintf(stderr, "Unable to create the lexer due to malloc() failure\n"); fflush(stderr); exit(ANTLR3_ERR_NOMEM); }
+    pLexer = ((pModelica_3_Lexer)lxr)->pLexer;
+    pLexer->rec->displayRecognitionError = handleLexerError;
+    pLexer->recover = lexNoRecover;
+    tstream = antlr3CommonTokenStreamSourceNew(ANTLR3_SIZE_HINT, TOKENSOURCE(((pModelica_3_Lexer)lxr)));
+  }
 
   ModelicaParser_lexerError = ANTLR3_FALSE;
 
@@ -313,11 +327,18 @@ static void* parseStream(pANTLR3_INPUT_STREAM input)
     JL_GC_POP();
   }
 
+  /* Re-enable GC now that parsing is complete */
+  jl_gc_enable(1);
+
   psr->free(psr);
   psr = (pModelicaParser) NULL;
   tstream->free(tstream);
   tstream = (pANTLR3_COMMON_TOKEN_STREAM) NULL;
-  ((pModelica_3_Lexer)lxr)->free((pModelica_3_Lexer)lxr);
+  if (metamodelica_enabled()) {
+    ((pMetaModelica_Lexer)lxr)->free((pMetaModelica_Lexer)lxr);
+  } else {
+    ((pModelica_3_Lexer)lxr)->free((pModelica_3_Lexer)lxr);
+  }
   lxr = NULL;
   input->close(input);
   input = (pANTLR3_INPUT_STREAM) NULL;

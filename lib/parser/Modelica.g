@@ -127,18 +127,77 @@ goto rule ## func ## Ex; }}
    * 0 = auto, 1 = full, 2 = incremental
    */
   #define jlgc() /* jl_gc_collect(rand() \% 2) */
-  #define OM_PUSHZ1(A) (A) = NULL; jlgc(); JL_GC_PUSH1(&(A)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; jlgc(); JL_GC_PUSH2(&(A),&(B)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; jlgc(); JL_GC_PUSH3(&(A),&(B),&(C)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; jlgc(); JL_GC_PUSH4(&(A),&(B),&(C),&(D)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; jlgc(); JL_GC_PUSH5(&(A),&(B),&(C),&(D),&(E)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; jlgc(); JL_GC_PUSH6(&(A),&(B),&(C),&(D),&(E),&(F)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; jlgc(); JL_GC_PUSH7(&(A),&(B),&(C),&(D),&(E),&(F),&(G)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; jlgc(); JL_GC_PUSH8(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; jlgc(); JL_GC_PUSH9(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; jlgc(); JL_GC_PUSH10(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; jlgc(); JL_GC_PUSH11(&(A),&(B),&(C),&(D),&(E),&(F),&(G),&(H),&(I),&(J),&(K)); ctx->pModelicaParser_omcTop->numPushed+=1;
-  #define OM_POP(NN) ctx->pModelicaParser_omcTop->numPushed=ctx->pModelicaParser_omcTop->numPushed-1; JL_GC_POP();
+
+  /*
+   * Backtracking-safe GC frame macros.
+   *
+   * During syntactic predicate evaluation (BACKTRACKING > 0), ANTLR may
+   * early-return from sub-rules via HASFAILED() checks, skipping the
+   * finally block that contains OM_POP. This leaves stale GC frames on
+   * jl_pgcstack pointing to reclaimed C stack memory, causing segfaults.
+   *
+   * Fix: always allocate the GC frame array on the C stack (so the variable
+   * stays in scope until the function returns), but only link it into
+   * jl_pgcstack when BACKTRACKING == 0. OM_POP only unlinks if it was linked.
+   * During backtracking, no Julia values are created (actions are guarded by
+   * BACKTRACKING==0), so rooting is unnecessary.
+   */
+  #define OM_PUSHZ1(A) (A) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(1), (void*)jl_pgcstack, (void*)&(A)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ2(A,B) (A) = NULL; (B) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(2), (void*)jl_pgcstack, (void*)&(A), (void*)&(B)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ3(A,B,C) (A) = NULL; (B) = NULL; (C) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(3), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ4(A,B,C,D) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(4), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ5(A,B,C,D,E) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(5), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ6(A,B,C,D,E,F) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(6), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ7(A,B,C,D,E,F,G) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(7), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F), (void*)&(G)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ8(A,B,C,D,E,F,G,H) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(8), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F), (void*)&(G), (void*)&(H)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ9(A,B,C,D,E,F,G,H,I) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(9), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F), (void*)&(G), (void*)&(H), (void*)&(I)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ10(A,B,C,D,E,F,G,H,I,J) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(10), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F), (void*)&(G), (void*)&(H), (void*)&(I), (void*)&(J)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_PUSHZ11(A,B,C,D,E,F,G,H,I,J,K) (A) = NULL; (B) = NULL; (C) = NULL; (D) = NULL; (E) = NULL; (F) = NULL; (G) = NULL; (H) = NULL; (I) = NULL; (J) = NULL; (K) = NULL; \
+    void *__om_gc_frame[] = {(void*)JL_GC_ENCODE_PUSH(11), (void*)jl_pgcstack, (void*)&(A), (void*)&(B), (void*)&(C), (void*)&(D), (void*)&(E), (void*)&(F), (void*)&(G), (void*)&(H), (void*)&(I), (void*)&(J), (void*)&(K)}; \
+    int __om_gc_linked = 0; \
+    jlgc(); \
+    if (BACKTRACKING == 0) { jl_pgcstack = (jl_gcframe_t*)__om_gc_frame; ctx->pModelicaParser_omcTop->numPushed+=1; __om_gc_linked = 1; }
+  #define OM_POP(NN) if (__om_gc_linked) { ctx->pModelicaParser_omcTop->numPushed-=1; jl_pgcstack = ((jl_gcframe_t*)__om_gc_frame)->prev; }
 }
 
 @members
@@ -1190,7 +1249,7 @@ algorithm_elseif returns [void* ast]
 equation_list_then returns [void* ast]
 @init{ OM_PUSHZ2(e.ast, es); } :
     { LA(1) == THEN }? { ast = mmc_mk_nil(); }
-  | (e=equation SEMICOLON es=equation_list_then) { ast = mmc_mk_cons_typed(Absyn_Equation, e.ast, es); }
+  | (e=equation SEMICOLON es=equation_list_then) { ast = mmc_mk_cons_typed(Absyn_EquationItem, e.ast, es); }
   ;
   finally{ OM_POP(2); }
 
@@ -1505,15 +1564,14 @@ matrix_expression_list returns [void* ast]
   finally{ OM_POP(2); }
 
 component_reference__function_call returns [void* ast]
-@init{ OM_PUSHZ4(cr.ast, /*ids,*/ fc, e.ast, $ast); i = 0; } :
-  /* julia gc barfs on this one
-  (cr=component_reference LESS ids=name_list GREATER fc=function_call) =>
+@init{ OM_PUSHZ5(cr.ast, ids, fc, e.ast, $ast); i = 0; } :
+  (component_reference LESS name_list GREATER function_call) =>
   cr=component_reference LESS ids=name_list GREATER fc=function_call {
     modelicaParserAssert(metamodelica_enabled(), "Polymorphic type specifiers are only available in MetaModelica",
       component_reference__function_call, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition);
     $ast = Absyn__CALL(cr.ast, fc, ids);
   }
-  | */
+  |
   cr=component_reference ( fc=function_call (DOT e=expression[metamodelica_enabled()])? )? {
       if (fc != NULL) {
         $ast = Absyn__CALL(cr.ast, fc, mmc_mk_nil());
@@ -1530,7 +1588,7 @@ component_reference__function_call returns [void* ast]
       $ast = Absyn__CALL($ast,Absyn__FUNCTIONARGS(mmc_mk_nil(),mmc_mk_nil()),mmc_mk_nil());
     }
   ;
-  finally{ OM_POP(4); }
+  finally{ OM_POP(5); }
 
 name_path_end returns [void* ast]
 @init{ OM_PUSHZ1(np); } :
@@ -1579,7 +1637,7 @@ name_path_group returns [void* ast]
   (id1=IDENT|id1=CODE) (EQUALS (id2=IDENT|id2=CODE))? (COMMA rest=name_path_group)?
     {
       tmp = token_to_scon(id1);
-      $ast = mmc_mk_cons_typed(Absyn_Import, id2 ? Absyn__GROUP_5fIMPORT_5fRENAME(tmp,token_to_scon(id2)) :
+      $ast = mmc_mk_cons_typed(Absyn_GroupImport, id2 ? Absyn__GROUP_5fIMPORT_5fRENAME(tmp,token_to_scon(id2)) :
                            Absyn__GROUP_5fIMPORT_5fNAME(tmp),
                      or_nil(rest));
     }
