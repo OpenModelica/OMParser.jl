@@ -4,8 +4,6 @@ using MetaModelica
 
 import Absyn, ImmutableList
 
-import Glob
-
 """
 The path were the package is located.
 """
@@ -13,7 +11,8 @@ const INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package(
 
 """
 """
-const SHARED_DIRECTORY_PATH = realpath(string(INSTALLATION_DIRECTORY_PATH, "/lib/ext"))
+const BUILD_DIRECTORY_PATH = joinpath(INSTALLATION_DIRECTORY_PATH, "lib", "build", "lib")
+const SHARED_DIRECTORY_PATH = joinpath(INSTALLATION_DIRECTORY_PATH, "lib", "ext", "shared")
 
 struct ParseError
 end
@@ -25,87 +24,37 @@ function isDerCref(exp::Absyn.Exp)::Bool
   end
 end
 
-"""
-  This function finds libraries built by the user or by the CI
-"""
-function _locateSharedParserLibrary(directoryToSearchIn)
-  local res = Glob.glob("*",  joinpath(directoryToSearchIn, "lib"))
-  local results = []
-  for p in res
-    push!(results, Glob.glob("*",  joinpath(directoryToSearchIn, p)))
-  end
-  #= Locate DLL =#
+function _parser_library_suffix()
   if Sys.islinux()
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.so", p)
-          return p
-        end
-      end
-    end
+    return ".so"
   elseif Sys.iswindows()
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.dll", p)
-          return p
-        end
-      end
-    end
-  else #= Assume apple =#
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.dylib", p)
-          return p
-        end
-      end
-    end
+    return ".dll"
   end
+  return ".dylib"
 end
 
 """
-  This function finds precompiled paths
+  Locate a parser library below a root directory.
 """
 function locateSharedParserLibrary(directoryToSearchIn)
-  local res = Glob.glob("*",  joinpath(directoryToSearchIn, "shared"))
-  local results = []
-  println()
-  for p in res
-    push!(results, Glob.glob("*",  joinpath(directoryToSearchIn, p)))
-  end
-  #= Locate DLL =#
-  if Sys.islinux()
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.so", p)
-          return p
-        end
-      end
-    end
-  elseif Sys.iswindows()
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.dll", p)
-          return p
-        end
-      end
-    end
-  else #= Assume apple=#
-    for r in results
-      for p in r
-        if occursin("libomparse-julia.dylib", p)
-          return p
-        end
+  isdir(directoryToSearchIn) || return nothing
+  suffix = _parser_library_suffix()
+  for (root, _, files) in walkdir(directoryToSearchIn)
+    for file in files
+      if occursin("libomparse-julia", file) && endswith(file, suffix)
+        return joinpath(root, file)
       end
     end
   end
+  return nothing
 end
 
 const _libpath = if Sys.iswindows()
-  _locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
+  locateSharedParserLibrary(BUILD_DIRECTORY_PATH)
 elseif Sys.islinux()
-  _locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
+  locateSharedParserLibrary(BUILD_DIRECTORY_PATH)
 elseif Sys.isapple()
-  _locateSharedParserLibrary(INSTALLATION_DIRECTORY_PATH)
+  locateSharedParserLibrary(BUILD_DIRECTORY_PATH)
 else
   throw("Your system is not supported. Supported Systems are Linux, macOS and Windows.")
 end

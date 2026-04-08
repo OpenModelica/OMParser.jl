@@ -4,6 +4,10 @@ A parser for Modelica in Julia based on the OpenModelica parser.
 
 ## Build the parser library
 
+`Pkg.build("OMParser")` now prefers the matching release asset for your Julia
+version and platform, and falls back to the documented local source build when
+no compatible release asset is available.
+
 ### Linux / Mac
 
 If you have your own Julia installation you need to set the path to it

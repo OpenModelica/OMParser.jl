@@ -31,12 +31,18 @@ jobs:
 
     steps:
 
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
+
     - name: setup julia environment
       uses: julia-actions/setup-julia@v2
       with:
         version: ${{ matrix.julia-version }}
 
     - name: setup msys2 environment
+      if: contains(matrix.sys.os, 'windows')
       uses: msys2/setup-msys2@v2
       with:
         update: false
@@ -51,7 +57,7 @@ jobs:
         git config --system core.eol lf
 
     - name: Install autotools if the system is macOS
-      if: contains(matrix.sys.os, 'macOS')
+      if: contains(matrix.sys.os, 'macos')
       run: |
        brew install autoconf
        brew install automake
@@ -72,6 +78,10 @@ jobs:
         cd ../build/lib
         tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
         mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
+
+    - name: Build
+      shell: bash
+      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(;verbose = true); Pkg.instantiate(); Pkg.resolve()'
 
     - name: Run the testsuite
       run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
