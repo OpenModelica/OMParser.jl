@@ -80,23 +80,64 @@ end
 function extract_zip_release!(archive_path::AbstractString)
     mkpath(PATH_TO_EXT)
     tarball_path = nothing
+    shared_dir = clear_shared_dir!()
+    copied_library = false
     archive = ZipFile.Reader(archive_path)
     try
         for file in archive.files
-            destination = joinpath(PATH_TO_EXT, basename(file.name))
-            open(destination, "w") do io
-                write(io, read(file))
+            file_name = basename(file.name)
+            isempty(file_name) && continue
+            if endswith(file.name, ".tar.gz")
+                destination = joinpath(PATH_TO_EXT, file_name)
+                open(destination, "w") do io
+                    write(io, read(file))
+                end
+                tarball_path = destination
+            elseif occursin("libomparse-julia", file_name)
+                mkpath(shared_dir)
+                destination = joinpath(shared_dir, file_name)
+                open(destination, "w") do io
+                    write(io, read(file))
+                end
+                copied_library = true
             end
-            endswith(file.name, ".tar.gz") && (tarball_path = destination)
         end
     finally
         close(archive)
     end
-    isnothing(tarball_path) &&
-        error("OMParser release archive did not contain a .tar.gz parser library")
-    shared_dir = extract_tarball!(tarball_path)
-    isfile(tarball_path) && rm(tarball_path; force = true)
-    return shared_dir
+    if !isnothing(tarball_path)
+        shared_dir = extract_tarball!(tarball_path)
+        isfile(tarball_path) && rm(tarball_path; force = true)
+        return shared_dir
+    end
+    copied_library && return shared_dir
+    error("OMParser release archive did not contain a parser library payload")
+end
+
+function ensured_stdlib_load_path()
+    load_path = get(ENV, "JULIA_LOAD_PATH", "")
+    isempty(load_path) && return "@:@stdlib"
+    occursin("@stdlib", load_path) && return load_path
+    return string(load_path, endswith(load_path, ":") ? "" : ":", "@stdlib")
+end
+
+function source_build_env()
+    return Dict("JULIA_LOAD_PATH" => ensured_stdlib_load_path())
+end
+
+function build_from_source!()
+    Sys.iswindows() &&
+        error("Automatic source build fallback is not supported on Windows.")
+    build_env = source_build_env()
+    @info "Falling back to documented local source build" parser_root = PARSER_ROOT julia_load_path = build_env["JULIA_LOAD_PATH"]
+    cd(PARSER_ROOT) do
+        run(`autoconf`)
+        run(addenv(`./configure`, build_env))
+        run(addenv(`make`, build_env))
+    end
+    check_local_build_exists() ||
+        error("OMParser source build completed but no parser library was produced.")
+    return nothing
 end
 
 function extract_release_archive!(archive_path::AbstractString)
@@ -127,20 +168,6 @@ function download_release_archive!(os_name::String)
         "Could not download a compatible OMParser release asset for " *
         "$(os_name) and Julia $(JULIA_MAJOR_MINOR).",
     )
-end
-
-function build_from_source!()
-    Sys.iswindows() &&
-        error("Automatic source build fallback is not supported on Windows.")
-    @info "Falling back to documented local source build" parser_root = PARSER_ROOT
-    cd(PARSER_ROOT) do
-        run(`autoconf`)
-        run(`./configure`)
-        run(`make`)
-    end
-    check_local_build_exists() ||
-        error("OMParser source build completed but no parser library was produced.")
-    return nothing
 end
 
 function build_or_download_parser_library!()
