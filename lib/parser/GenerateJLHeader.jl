@@ -41,17 +41,26 @@ Pkg.Registry.add("General")
 #= Add the Modelica registry =#
 Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
 
-pkgs = Pkg.installed()
-if ! ("MetaModelica" in keys(pkgs))
+function installed_package_names()
+  names = Set{String}()
+  for dep in values(Pkg.dependencies())
+    dep.name === nothing && continue
+    push!(names, dep.name)
+  end
+  return names
+end
+
+pkgs = installed_package_names()
+if !("MetaModelica" in pkgs)
   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"))
 end
 
 #= Add the latest Absyn from the master branch but only if Absyn is not installed =#
-if ! ("Absyn" in keys(pkgs))
+if !("Absyn" in pkgs)
   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
 end
 
-if ! ("ImmutableList" in keys(pkgs))
+if !("ImmutableList" in pkgs)
   Pkg.add("ImmutableList")
 end
 
@@ -165,6 +174,7 @@ function programExternalHeaderJulia(allDataTypes, moduleName)
   println(buffer, "/* Automatically generated header for external MetaModelica functions */")
   println(buffer, "#include <julia.h>")
   println(buffer, "#include <assert.h>")
+  println(buffer, "typedef jl_value_t *omc_jl_function_ref_t;")
   println(buffer, "#ifdef __cplusplus")
   println(buffer, "extern \"C\" {")
   println(buffer, "#endif")
@@ -224,7 +234,7 @@ function generateJL_Values(allDataTypes)
       end
       local qualifiedName = getSuperTypePath(dataType)
       local baseTypeStr = components[2] #= In this case the base type should be the type without the absyn prefix=#
-      local funcStr = string("jl_function_t *", qualifiedName, " = ", "NULL;")
+      local funcStr = string("omc_jl_function_ref_t ", qualifiedName, " = ", "NULL;")
       local valueStr = string("jl_value_t *", qualifiedName, "_type", " = ", "NULL;")
       println(buffer, funcStr)
       println(buffer, valueStr)
@@ -308,8 +318,8 @@ function generateExternalDeclarations(allSuperTypes)
       local components = split(string(subType), ".")
       local qualifiedName = getSuperTypePath(subType)
       local baseTypeStr = components[2]
-      local functionName = string("extern jl_function_t *", qualifiedName, ";")
-      local typeName = string("extern jl_function_t *", qualifiedName, "_type", ";")
+      local functionName = string("extern omc_jl_function_ref_t ", qualifiedName, ";")
+      local typeName = string("extern jl_value_t *", qualifiedName, "_type", ";")
       println(buffer, functionName)
       println(buffer, typeName)
       #= Find out the amount of function arguments to create these types =#

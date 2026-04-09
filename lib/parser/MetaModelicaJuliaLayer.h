@@ -21,17 +21,24 @@
 #define listEmpty(X) (jl_true == jl_call1(omc_jl_listEmpty, (X)))
 #define optionNone(X) jl_is_nothing(X)
 
+/*
+ * Julia 1.13 no longer exposes jl_function_t as the public return type for
+ * jl_get_function/jl_call*. Store callable objects as jl_value_t* so the same
+ * bridge compiles against Julia 1.12 and 1.13 headers.
+ */
+typedef jl_value_t* omc_jl_function_ref_t;
+
 /* Note: These values may be garbage collected away? Call this before each file is parsed? */
 void OpenModelica_initMetaModelicaJuliaLayer();
 
-extern jl_function_t* omc_jl_some;
-extern jl_function_t* omc_jl_cons;
-extern jl_function_t* omc_jl_cons_typed;
-extern jl_function_t* omc_jl_sourceinfo;
-extern jl_function_t* omc_jl_listReverse;
-extern jl_function_t* omc_jl_listEmpty;
-extern jl_function_t* omc_jl_tuple2;
-extern jl_function_t* omc_jl_isDerCref;
+extern omc_jl_function_ref_t omc_jl_some;
+extern omc_jl_function_ref_t omc_jl_cons;
+extern omc_jl_function_ref_t omc_jl_cons_typed;
+extern omc_jl_function_ref_t omc_jl_sourceinfo;
+extern omc_jl_function_ref_t omc_jl_listReverse;
+extern omc_jl_function_ref_t omc_jl_listEmpty;
+extern omc_jl_function_ref_t omc_jl_tuple2;
+extern omc_jl_function_ref_t omc_jl_isDerCref;
 extern jl_value_t* omc_jl_nil;
 
 /*

@@ -1,0 +1,70 @@
+name: Nightly CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.sys.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sys:
+          - { os: ubuntu-latest, shell: bash }
+          - { os: macos-latest, shell: bash }
+
+    defaults:
+      run:
+        shell: ${{ matrix.sys.shell }}
+
+    name: Build parser (${{ matrix.sys.os }}, Julia nightly)
+
+    steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: "zulu"
+        java-version: "21"
+
+    - name: setup julia environment
+      uses: julia-actions/setup-julia@v2
+      with:
+        version: nightly
+
+    - name: Install autotools if the system is Ubuntu
+      if: contains(matrix.sys.os, 'ubuntu')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf automake m4 pkg-config libtool
+
+    - name: Install autotools if the system is macOS
+      if: contains(matrix.sys.os, 'macos')
+      run: |
+        brew install autoconf
+        brew install automake
+        brew install m4
+        brew install pkg-config
+        brew install libtool
+
+    - uses: actions/checkout@v4
+
+    - name: configure the library and build
+      run: |
+        which gcc
+        gcc --version
+        cd lib/parser
+        autoconf
+        ./configure
+        make
+
+    - name: Build
+      shell: bash
+      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(; verbose = true); Pkg.instantiate(); Pkg.resolve()'
+
+    - name: Run the testsuite
+      run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
