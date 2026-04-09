@@ -200,7 +200,11 @@ done
 AC_MSG_RESULT([$LDFLAGS])
 
 OLD_CFLAGS="$CFLAGS"
-for flag in -Wno-parentheses-equality -Wno-unused-variable; do
+WARNING_SUPPRESS_FLAGS="-Wno-unused-variable"
+if $CC --version | grep -qi clang; then
+  WARNING_SUPPRESS_FLAGS="$WARNING_SUPPRESS_FLAGS -Wno-parentheses-equality -Wno-nullability-completeness"
+fi
+for flag in $WARNING_SUPPRESS_FLAGS; do
   CFLAGS="$RUNTIMECFLAGS $flag -Werror"
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[
     CHECK_C_ERRORS="$CHECK_C_ERRORS $flag"
@@ -318,10 +322,16 @@ if test -z "$RUNTIMECFLAGS"; then
   CFLAGS="$FPIC"
   AC_MSG_CHECKING([runtime compiler CFLAGS])
   RUNTIMECFLAGS="$FPIC"
-  for flag in -falign-functions -mfpmath=sse -fno-dollars-in-identifiers -Wno-parentheses-equality; do
+  for flag in -falign-functions -mfpmath=sse -fno-dollars-in-identifiers; do
     CFLAGS="$FPIC $flag -Werror"
     AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[RUNTIMECFLAGS="$RUNTIMECFLAGS $flag"],[])
   done
+  if $CC --version | grep -qi clang; then
+    for flag in -Wno-parentheses-equality -Wno-nullability-completeness; do
+      CFLAGS="$FPIC $flag -Werror"
+      AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[RUNTIMECFLAGS="$RUNTIMECFLAGS $flag"],[])
+    done
+  fi
 else
   CFLAGS="$RUNTIMECFLAGS $FPIC -Werror"
   AC_LINK_IFELSE([AC_LANG_PROGRAM([[]], [[return 0;]])],[RUNTIMECFLAGS="$RUNTIMECFLAGS $FPIC"],[AC_MSG_ERROR([$CC $CFLAGS -Werror failed])])

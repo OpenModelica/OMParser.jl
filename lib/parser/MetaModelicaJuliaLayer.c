@@ -82,7 +82,12 @@ void c_add_source_message(
        jl_value_t* filename)
 {
   int i;
-  fprintf(stderr, "%s:%d:%d-%d:%d: %s\n", jl_string_data(filename), startLine, startCol, endLine, endCol, message, nTokens);
+  (void)dummy;
+  (void)errorID;
+  (void)type;
+  (void)severity;
+  (void)isReadOnly;
+  fprintf(stderr, "%s:%d:%d-%d:%d: %s\n", jl_string_data(filename), startLine, startCol, endLine, endCol, message);
   for (i=0; i<nTokens; i++) {
     fprintf(stderr, "    Error token %d: %s\n", i+1, ctokens[i]);
   }

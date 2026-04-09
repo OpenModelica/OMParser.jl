@@ -7,7 +7,7 @@ import Absyn, ImmutableList
 """
 The path were the package is located.
 """
-const INSTALLATION_DIRECTORY_PATH = realpath(realpath(dirname(Base.find_package("OMParser")) * "/../"))
+const INSTALLATION_DIRECTORY_PATH = realpath(joinpath(@__DIR__, ".."))
 
 """
 """
