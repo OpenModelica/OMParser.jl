@@ -7,6 +7,8 @@ import Absyn, ImmutableList
 """
 The path were the package is located.
 """
+# Keep package-root discovery anchored to the source file location so compilecache
+# does not depend on registry/package lookup state in parent environments.
 const INSTALLATION_DIRECTORY_PATH = realpath(joinpath(@__DIR__, ".."))
 
 """
