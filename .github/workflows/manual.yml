@@ -30,6 +30,10 @@ jobs:
     name: Build parser (${{ matrix.sys.os }}, Julia ${{ matrix.julia-version }})
 
     steps:
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '21'
 
     - name: setup julia environment
       uses: julia-actions/setup-julia@v2
@@ -79,6 +83,11 @@ jobs:
         cd ../build/lib
         tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
         mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
+
+    - name: Build
+      # Always use bash to avoid having to escape quotes for Windows
+      shell: bash
+      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(;verbose = true); Pkg.instantiate(); Pkg.resolve()'
 
     - name: Run the testsuite
       shell: bash
