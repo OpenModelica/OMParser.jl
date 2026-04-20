@@ -63,6 +63,7 @@ END_MATCH;
 END_MATCHCONTINUE;
 END_WHEN;
 END_WHILE;
+END_RECONFIGURE;
 T_END;
 ENUMERATION;
 EQUATION;
@@ -111,6 +112,8 @@ WITHIN;
 RETURN;
 BREAK;
 STREAM;
+RECONFIGURE;
+UPON;
 /* MetaModelica keywords. I guess not all are needed here. */
 AS;
 CASE;
@@ -182,6 +185,9 @@ POWER_EW;
 /* MetaModelica operators */
 COLONCOLON;
 MOD;
+
+/* Agentic Modelica operators */
+IMPLIES;
 
 IDENT;
 
@@ -412,6 +418,13 @@ END_IF : 'end' EAT_WS_COMMENT 'if';
 END_FOR : 'end' EAT_WS_COMMENT 'for';
 END_WHEN : 'end' EAT_WS_COMMENT 'when';
 END_WHILE : 'end' EAT_WS_COMMENT 'while';
+END_RECONFIGURE   : 'end' EAT_WS_COMMENT 'reconfigure';
+RECONFIGURE       : 'reconfigure';
+UPON              : 'upon';
+PROMPT            : 'prompt';
+BEGIN_MODIFICATION: 'begin' EAT_WS_COMMENT 'modification';
+END_MODIFICATION  : 'end'   EAT_WS_COMMENT 'modification';
+IMPLIES : '=>';
 END_IDENT : 'end' EAT_WS_COMMENT
     ( IDENT2 {SETTEXT($IDENT2.text);}
     | QIDENT {SETTEXT($QIDENT.text);}

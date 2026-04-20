@@ -1,110 +1,140 @@
 #= Build script for the OpenModelica parser. =#
 @info "Building OpenModelicaParser A Modelica Parser in Julia"
-import ZipFile
-import Tar
+
+import HTTP
 import Inflate
 import Pkg
-pkgs = Pkg.installed()
+import Tar
+import ZipFile
 
-if ! ("MetaModelica" in keys(pkgs))
-  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"))
-end
-if ! ("Absyn" in keys(pkgs))
-  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
-  Pkg.develop(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
-end
-
-function extractTar(libraryString; URL)
-  @info "Downloading shared library from: $URL"
-  HTTP.download(URL, PATH_TO_EXT)
-  println(pwd())
-  cd(PATH_TO_EXT)
-  println(pwd())
-  foreach(readdir()) do f
-    println("\nObject: ", f)
-  end
-  @info "Decompressing archive.."
-  local res = Inflate.inflate_gzip(string(libraryString, ".tar.gz"))
-  local tarName = string(libraryString, ".tar")
-  write(tarName, res)
-  @info "Done. .tar created."
-  @info "...Extracting the files in the tar..."
-  @info "----------------------------------------"
-  try
-    rm("shared", recursive=true)
-  catch #= Silence on failure =#
-  end
-  dir = Tar.extract(tarName, "shared")
-  @info dir
-  @info "----------------------------------------"
-  @info "Download external shared libraries done!"
-  foreach(readdir()) do f
-    @info "\nObject: " f
-  end
-  @info "----------------------------------------"
-end
-
-using HTTP
-#=Extern path=#
-PATH_TO_EXT = realpath("$(pwd())/../lib/ext")
-
-#= Determine Julia version for library selection =#
+const PACKAGE_ROOT = normpath(joinpath(@__DIR__, ".."))
+const PATH_TO_EXT = mkpath(joinpath(PACKAGE_ROOT, "lib", "ext"))
+const BUILD_LIB_DIR = joinpath(PACKAGE_ROOT, "lib", "build", "lib")
+const SHARED_LIB_DIR = joinpath(PACKAGE_ROOT, "lib", "ext", "shared")
 const JULIA_MAJOR_MINOR = "$(VERSION.major).$(VERSION.minor)"
+
+function installed_package_names()
+  names = Set{String}()
+  for (_, dep) in Pkg.dependencies()
+    dep.name === nothing || push!(names, dep.name)
+  end
+  names
+end
+
+pkgs = installed_package_names()
+
+if !("MetaModelica" in pkgs)
+  Pkg.add(Pkg.PackageSpec(url = "https://github.com/OpenModelica/MetaModelica.jl.git", rev = "master"))
+end
+if !("Absyn" in pkgs)
+  Pkg.add(Pkg.PackageSpec(url = "https://github.com/OpenModelica/Absyn.jl.git", rev = "master"))
+end
+
 @info "Detected Julia version: $JULIA_MAJOR_MINOR"
 
 @static if v"1.10.0" > VERSION
   throw("Building OMParser with precompiled shared libraries is currently only supported for Julia version 1.10 or greater. For prior versions of Julia please download and extract the libraries available at https://github.com/OpenModelica/OMParser.jl/releases or build the libraries in the lib subdirectory.")
 end
 
-#= Check if local build already exists (from configure/make) =#
-function checkLocalBuildExists()
-  local build_path = realpath("$(pwd())/../lib/build/lib")
-  if isdir(build_path)
-    local lib_files = filter(f -> endswith(f, ".so") || endswith(f, ".dll") || endswith(f, ".dylib"),
-                              readdir(build_path; join=true))
-    if !isempty(lib_files)
-      @info "Local build already exists at $build_path, skipping download"
-      return true
-    end
-    #= Check subdirectories (platform-specific) =#
-    for subdir in readdir(build_path)
-      local subpath = joinpath(build_path, subdir)
-      if isdir(subpath)
-        local sub_files = filter(f -> occursin("libomparse-julia", f), readdir(subpath))
-        if !isempty(sub_files)
-          @info "Local build already exists at $subpath, skipping download"
-          return true
-        end
-      end
-    end
+function parser_library_names()
+  if Sys.islinux()
+    return ("libomparse-julia.so", "libomantlr3.so")
+  elseif Sys.iswindows()
+    return ("libomparse-julia.dll", "libomantlr3.dll")
+  else
+    return ("libomparse-julia.dylib", "libomantlr3.dylib")
+  end
+end
+
+function has_parser_library(dir::String)::Bool
+  isdir(dir) || return false
+  names = parser_library_names()
+  for (root, _, files) in walkdir(dir)
+    any(name -> name in files, names) && return true
   end
   return false
 end
 
-#= Construct platform and Julia version specific library names =#
-function getLibraryURL(os_name::String)
-  local lib_name = "$(os_name)-julia-$(JULIA_MAJOR_MINOR)-library"
-  local release_tag = "Latest-$(os_name)-julia-$(JULIA_MAJOR_MINOR)"
-  local url = "https://github.com/OpenModelica/OMParser.jl/releases/download/$(release_tag)/$(lib_name).tar.gz"
-  return (lib_name, url)
+function unzip_into(zip_path::String, dest_dir::String)
+  reader = ZipFile.Reader(zip_path)
+  try
+    for entry in reader.files
+      if endswith(entry.name, "/")
+        mkpath(joinpath(dest_dir, entry.name))
+        continue
+      end
+      out_path = joinpath(dest_dir, entry.name)
+      mkpath(dirname(out_path))
+      open(out_path, "w") do io
+        write(io, read(entry))
+      end
+    end
+  finally
+    close(reader)
+  end
 end
 
-#= Only download if local build does not exist =#
-if !checkLocalBuildExists()
-  @static if Sys.iswindows()
-    #= Download the shared libraries (DLLS for Windows) =#
-    local (lib_name, url) = getLibraryURL("windows-latest")
-    extractTar(lib_name; URL=url)
-  elseif Sys.islinux()
-    local (lib_name, url) = getLibraryURL("ubuntu-latest")
-    extractTar(lib_name; URL=url)
-  elseif Sys.isapple()
-    local (lib_name, url) = getLibraryURL("macos-latest")
-    extractTar(lib_name; URL=url)
-  else
-    @error "Non Linux/Windows/macOS systems are currently not supported"
-    throw("Unsupported system error")
+function fetch_release_archive(library_name::String, url::String)
+  zip_path = joinpath(PATH_TO_EXT, string(library_name, ".zip"))
+  @info "Downloading shared library from: $url"
+  HTTP.download(url, zip_path)
+
+  shared_dir = joinpath(PATH_TO_EXT, "shared")
+  isdir(shared_dir) && rm(shared_dir; recursive = true, force = true)
+  mkpath(shared_dir)
+
+  @info "Unzipping $zip_path into $shared_dir"
+  unzip_into(zip_path, shared_dir)
+
+  # macOS and Windows release assets wrap the real library tree in an inner
+  # tar.gz (produced by actions/upload-artifact in manual.yml). Linux assets
+  # carry the library file directly. Detect and unpack the nested archive.
+  nested = filter(f -> isfile(joinpath(shared_dir, f)) && endswith(f, ".tar.gz"),
+                  readdir(shared_dir))
+  if length(nested) == 1
+    nested_path = joinpath(shared_dir, nested[1])
+    staged_path = joinpath(PATH_TO_EXT, nested[1])
+    mv(nested_path, staged_path; force = true)
+    rm(shared_dir; recursive = true, force = true)
+
+    @info "Extracting nested archive $staged_path"
+    tar_bytes = Inflate.inflate_gzip(read(staged_path))
+    tar_path = replace(staged_path, r"\.gz$" => "")
+    write(tar_path, tar_bytes)
+    Tar.extract(tar_path, shared_dir)
+    rm(staged_path; force = true)
+    rm(tar_path; force = true)
+  elseif length(nested) > 1
+    throw("Unexpected release archive layout: multiple nested tarballs $(nested)")
   end
+
+  @info "Download external shared libraries done."
+end
+
+function get_library_url(os_name::String)
+  library_name = "parser-library-$(os_name)-julia-$(JULIA_MAJOR_MINOR)"
+  release_tag = "Latest-$(os_name)-julia-$(JULIA_MAJOR_MINOR)"
+  url = "https://github.com/OpenModelica/OMParser.jl/releases/download/$(release_tag)/$(library_name).zip"
+  return library_name, url
+end
+
+if has_parser_library(BUILD_LIB_DIR)
+  @info "Using locally built parser library from $BUILD_LIB_DIR"
+elseif has_parser_library(SHARED_LIB_DIR)
+  @info "Using previously downloaded parser library from $SHARED_LIB_DIR"
 else
-  @info "Using locally built parser library"
+  if Sys.iswindows()
+    library_name, url = get_library_url("windows-latest")
+  elseif Sys.islinux()
+    library_name, url = get_library_url("ubuntu-latest")
+  elseif Sys.isapple()
+    library_name, url = get_library_url("macos-latest")
+  else
+    throw("Unsupported system error: only Linux, macOS and Windows are supported")
+  end
+
+  fetch_release_archive(library_name, url)
+
+  has_parser_library(SHARED_LIB_DIR) ||
+    throw("OMParser build finished without producing a parser library under $(SHARED_LIB_DIR)")
 end

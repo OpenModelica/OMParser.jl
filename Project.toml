@@ -1,7 +1,7 @@
 name = "OMParser"
 uuid = "11f87224-cae7-4e99-a924-e50d12f62c59"
 authors = ["Adrian Pop <adrian.pop@liu.se", "John Tinnerholm <john.tinnerholm@liu.se>"]
-version = "0.0.3"
+version = "0.0.4"
 
 [deps]
 Absyn = "ce2f92e2-a952-11e9-0543-8b443f216f1d"
@@ -17,6 +17,13 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 TarIterators = "06456b94-f2fb-4c2e-911f-0795f0d2fb0a"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+
+# Sibling OM.jl packages live in-tree. Resolve against the working copies.
+[sources]
+Absyn = { path = "../Absyn.jl" }
+ImmutableList = { path = "../ImmutableList.jl" }
+MetaModelica = { path = "../MetaModelica.jl" }
+
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 [targets]

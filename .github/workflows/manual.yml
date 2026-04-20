@@ -61,6 +61,13 @@ jobs:
 
     - uses: actions/checkout@v4
 
+    - name: Clone sibling OM.jl packages
+      shell: bash
+      run: |
+        git clone --depth 1 --branch master https://github.com/OpenModelica/Absyn.jl.git ../Absyn.jl
+        git clone --depth 1 --branch master https://github.com/OpenModelica/ImmutableList.jl.git ../ImmutableList.jl
+        git clone --depth 1 --branch master https://github.com/OpenModelica/MetaModelica.jl.git ../MetaModelica.jl
+
     - name: configure the library and build
       run: |
         which gcc
@@ -74,13 +81,21 @@ jobs:
         mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
 
     - name: Run the testsuite
-      run: julia --color=yes --project -e 'import Pkg; Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
+      shell: bash
+      run: julia --color=yes --project -e 'import Pkg; Pkg.test("Absyn"); Pkg.test("OMParser")'
+
+    - name: Package release zip
+      shell: bash
+      run: |
+        cd "${{ github.workspace }}"
+        zip "parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}.zip" \
+            "${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz"
 
     - name: upload library
       uses: actions/upload-artifact@v4
       with:
         name: parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}
-        path: ${{ github.workspace }}/${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz
+        path: ${{ github.workspace }}/parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}.zip
 
     - name: "Perform Release"
       uses: "marvinpinto/action-automatic-releases@latest"
@@ -90,4 +105,4 @@ jobs:
         draft: false
         prerelease: true
         files: |
-          ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz
+          parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}.zip

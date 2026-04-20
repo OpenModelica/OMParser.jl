@@ -993,6 +993,7 @@ equation returns [void* ast]
   | e=parfor_clause_e
   | e=connect_clause
   | e=when_clause_e
+  | e=reconfigure_block
   | FAILURE LPAR eq=equation RPAR { e = Absyn__EQ_5fFAILURE(eq.ast); }
   | EQUALITY LPAR e1=expression[metamodelica_enabled()] EQUALS e2=expression[metamodelica_enabled()] RPAR
     {
@@ -1200,6 +1201,70 @@ else_when_e returns [void* ast]
   ELSEWHEN e=expression[metamodelica_enabled()] THEN es=equation_list { ast = mmc_mk_tuple2(e.ast,es); }
   ;
   finally{ OM_POP(2); }
+
+reconfigure_block returns [void* ast]
+@declarations { void *vars_ast = 0, *mod_ast = 0, *init_eqs_ast = 0; }
+@init { OM_PUSHZ5(vars_ast, clauses, prompt_opt, mod_ast, init_eqs_ast); } :
+  RECONFIGURE
+    vars=reconfigure_var_list
+    clauses=upon_clause_list
+    ( prompt_opt=reconfigure_prompt )?
+    ( mod=modification_block { mod_ast = mod; } )?
+    ( INITIAL EQUATION init_eqs=equation_list { init_eqs_ast = init_eqs; } )?
+  END_RECONFIGURE
+  {
+    vars_ast = vars.ast;
+    $ast = Absyn__EQ_5fRECONFIGURE(vars_ast, or_nil(clauses), mmc_mk_some_or_none(prompt_opt), mmc_mk_some_or_none(mod_ast), mmc_mk_some_or_none(init_eqs_ast));
+  }
+  ;
+  finally{ OM_POP(5); }
+
+reconfigure_var_list returns [void* ast]
+@declarations { void *rest_ast = 0; }
+@init { OM_PUSHZ2(cc, rest_ast); } :
+    { LA(1) == WHEN || LA(1) == END_RECONFIGURE }?
+    { $ast = mmc_mk_nil(); }
+  | ( cc=component_clause SEMICOLON rest=reconfigure_var_list )
+    { rest_ast = rest.ast;
+      $ast = mmc_mk_cons_typed(Absyn_ElementItem,
+        Absyn__ELEMENTITEM(Absyn__ELEMENT(MMC_FALSE, mmc_mk_none(), Absyn__NOT_5fINNER_5fOUTER, cc, PARSER_INFO($start), mmc_mk_none())),
+        rest_ast); }
+  ;
+  finally{ OM_POP(2); }
+
+upon_clause_list returns [void* ast]
+@init { OM_PUSHZ2(ast, u); ast = mmc_mk_nil(); } :
+  ( u=upon_clause { ast = mmc_mk_cons(u, ast); } )+
+  { ast = listReverseInPlace(ast); }
+  ;
+  finally{ OM_POP(2); }
+
+upon_clause returns [void* ast]
+@init { OM_PUSHZ2(e1.ast, e2.ast); } :
+  WHEN e1=expression[metamodelica_enabled()]
+  ( IMPLIES e2=expression[metamodelica_enabled()] SEMICOLON
+    { $ast = Absyn__WHEN_5fCONDITIONAL(e1.ast, e2.ast); }
+  | SEMICOLON
+    { $ast = Absyn__WHEN_5fTRIGGER(e1.ast); }
+  )
+  ;
+  finally{ OM_POP(2); }
+
+reconfigure_prompt returns [void* ast]
+@init { OM_PUSHZ1(e.ast); } :
+  PROMPT LPAR e=expression[metamodelica_enabled()] RPAR SEMICOLON
+  { $ast = e.ast; }
+  ;
+  finally{ OM_POP(1); }
+
+modification_block returns [void* ast]
+@init { OM_PUSHZ1(eqs); } :
+  BEGIN_MODIFICATION
+    eqs=equation_list
+  END_MODIFICATION
+  { $ast = eqs; }
+  ;
+  finally{ OM_POP(1); }
 
 when_clause_a returns [void* ast]
 @init{ OM_PUSHZ3(e.ast, body, es); } :

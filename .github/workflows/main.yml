@@ -52,6 +52,14 @@ jobs:
        brew install libtool
 
     - uses: actions/checkout@v4
+
+    - name: Clone sibling OM.jl packages
+      shell: bash
+      run: |
+        git clone --depth 1 --branch master https://github.com/OpenModelica/Absyn.jl.git ../Absyn.jl
+        git clone --depth 1 --branch master https://github.com/OpenModelica/ImmutableList.jl.git ../ImmutableList.jl
+        git clone --depth 1 --branch master https://github.com/OpenModelica/MetaModelica.jl.git ../MetaModelica.jl
+
     - name: configure the library and build
       run: |
         which gcc
@@ -70,7 +78,7 @@ jobs:
       run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(;verbose = true);Pkg.instantiate(); Pkg.resolve()'
 
     - name:  Test
-      run: julia --color=yes --project -e 'import Pkg;   Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master")); Pkg.test("Absyn"); Pkg.test("OMParser")'
+      run: julia --color=yes --project -e 'import Pkg; Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: upload library
       uses: actions/upload-artifact@v4
