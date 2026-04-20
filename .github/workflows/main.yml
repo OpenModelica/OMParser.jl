@@ -14,7 +14,7 @@ jobs:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
-        julia-version: ['1.10', '1.11', '1.12']
+        julia-version: ['1.11', '1.12']
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
