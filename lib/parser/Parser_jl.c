@@ -56,9 +56,37 @@
 pthread_once_t parser_once_create_key = PTHREAD_ONCE_INIT;
 pthread_key_t modelicaParserKey;
 
+static void free_parser_members(void *state)
+{
+  parser_members *members = state;
+
+  if (members == NULL) {
+    return;
+  }
+
+  free(members->last_error_message);
+  free(members);
+}
+
 static void make_key()
 {
-  pthread_key_create(&modelicaParserKey, NULL);
+  pthread_key_create(&modelicaParserKey, free_parser_members);
+}
+
+static parser_members* get_parser_members(void)
+{
+  parser_members *members = pthread_getspecific(modelicaParserKey);
+
+  if (members == NULL) {
+    members = calloc(1, sizeof(parser_members));
+    if (members == NULL) {
+      return NULL;
+    }
+
+    pthread_setspecific(modelicaParserKey, members);
+  }
+
+  return members;
 }
 
 static void lexNoRecover(pANTLR3_LEXER lexer)
@@ -346,12 +374,11 @@ static void* parseStream(pANTLR3_INPUT_STREAM input)
   return res;
 }
 
-DLLDirection jl_value_t* parseString(jl_value_t* contents, jl_value_t* interactiveFileName, int acceptedGrammar, int langStd)
+OMPARSER_EXPORT jl_value_t* parseString(jl_value_t* contents, jl_value_t* interactiveFileName, int acceptedGrammar, int langStd)
 {
   pANTLR3_UINT8               fName;
   pANTLR3_INPUT_STREAM        input;
-
-  parser_members members;
+  parser_members             *members;
 
   int flags = PARSE_MODELICA;
   if(acceptedGrammar == 2) flags |= PARSE_META_MODELICA;
@@ -360,16 +387,25 @@ DLLDirection jl_value_t* parseString(jl_value_t* contents, jl_value_t* interacti
   else if(acceptedGrammar == 5) flags |= PARSE_PDEMODELICA;
 
   pthread_once(&parser_once_create_key,make_key);
-  pthread_setspecific(modelicaParserKey,&members);
+  members = get_parser_members();
+  if (members == NULL) {
+    fprintf(stderr, "Out of memory trying to allocate parser thread state\n");
+    fflush(stderr);
+    exit(ANTLR3_ERR_NOMEM);
+  }
 
-  members.encoding = "UTF-8";
-  members.filename_C = interactiveFileName;
-  members.filename_C_testsuiteFriendly = interactiveFileName;
-  members.filename_OMC = interactiveFileName;
-  members.flags = flags;
-  members.readonly = 1;
-  members.langStd = langStd;
-  members.first_comment = 0;
+  OMParser_clearLastErrorMessage();
+
+  members->encoding = "UTF-8";
+  members->filename_C = interactiveFileName;
+  members->filename_C_testsuiteFriendly = interactiveFileName;
+  members->filename_OMC = interactiveFileName;
+  members->timestamp = NULL;
+  members->flags = flags;
+  members->readonly = 1;
+  members->langStd = langStd;
+  members->first_comment = 0;
+  members->lexerError = 0;
 
   fName  = (pANTLR3_UINT8)jl_string_data(interactiveFileName);
 #if defined(ANTLR_C_VERSION_3_2)
@@ -387,12 +423,11 @@ DLLDirection jl_value_t* parseString(jl_value_t* contents, jl_value_t* interacti
 }
 
 
-DLLDirection jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar, int langStd)
+OMPARSER_EXPORT jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar, int langStd)
 {
   pANTLR3_UINT8               fName;
   pANTLR3_INPUT_STREAM        input;
-
-  parser_members members;
+  parser_members             *members;
 
   int flags = PARSE_MODELICA;
   if(acceptedGrammar == 2) flags |= PARSE_META_MODELICA;
@@ -401,16 +436,25 @@ DLLDirection jl_value_t* parseFile(jl_value_t *fileName, int acceptedGrammar, in
   else if(acceptedGrammar == 5) flags |= PARSE_PDEMODELICA;
 
   pthread_once(&parser_once_create_key,make_key);
-  pthread_setspecific(modelicaParserKey,&members);
+  members = get_parser_members();
+  if (members == NULL) {
+    fprintf(stderr, "Out of memory trying to allocate parser thread state\n");
+    fflush(stderr);
+    exit(ANTLR3_ERR_NOMEM);
+  }
 
-  members.encoding = "UTF-8";
-  members.filename_C = fileName;
-  members.filename_C_testsuiteFriendly = fileName;
-  members.filename_OMC = fileName;
-  members.flags = flags;
-  members.readonly = 0;
-  members.langStd = langStd;
-  members.first_comment = 0;
+  OMParser_clearLastErrorMessage();
+
+  members->encoding = "UTF-8";
+  members->filename_C = fileName;
+  members->filename_C_testsuiteFriendly = fileName;
+  members->filename_OMC = fileName;
+  members->timestamp = NULL;
+  members->flags = flags;
+  members->readonly = 0;
+  members->langStd = langStd;
+  members->first_comment = 0;
+  members->lexerError = 0;
 
   fName  = (pANTLR3_UINT8)jl_string_data(fileName);
   input  = antlr3AsciiFileStreamNew(fName);

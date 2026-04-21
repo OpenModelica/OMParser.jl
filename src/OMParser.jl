@@ -15,7 +15,25 @@ Directory containing externally downloaded shared libraries.
 """
 const SHARED_DIRECTORY_PATH = joinpath(INSTALLATION_DIRECTORY_PATH, "lib", "ext")
 
-struct ParseError end
+struct ParseError <: Exception
+  message::String
+end
+
+ParseError() = ParseError("Parsing failed")
+
+function Base.showerror(io::IO, err::ParseError)
+  print(io, err.message)
+end
+
+function last_parse_error_message()
+  ptr = ccall((:OMParser_lastErrorMessage, ensure_installed_lib_path()), Cstring, ())
+  ptr == C_NULL && return nothing
+  try
+    unsafe_string(ptr)
+  finally
+    ccall((:OMParser_clearLastErrorMessage, ensure_installed_lib_path()), Cvoid, ())
+  end
+end
 
 function isDerCref(exp::Absyn.Exp)::Bool
   @match exp begin
@@ -73,7 +91,7 @@ function parseString(contents::String,
                      languageStandard::Int64 = 1000)::Absyn.Program
   local res = ccall((:parseString, ensure_installed_lib_path()), Any, (String, String, Int64, Int64), contents, interactiveFileName, acceptedGram, languageStandard)
   if res == nothing
-    throw(ParseError())
+    throw(ParseError(something(last_parse_error_message(), "Parsing failed")))
   end
   res
 end
@@ -99,7 +117,7 @@ Grammar mapping for the `acceptedGram` variable:
 function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
   local res = ccall((:parseFile, ensure_installed_lib_path()), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
   if res == nothing
-    throw(ParseError())
+    throw(ParseError(something(last_parse_error_message(), "Parsing failed")))
   end
   res
 end

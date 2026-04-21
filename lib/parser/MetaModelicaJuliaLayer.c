@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <julia.h>
 #include "MetaModelicaJuliaLayer.h"
 
@@ -66,6 +68,144 @@ void OpenModelica_initMetaModelicaJuliaLayer()
   assert((omc_jl_nil = jl_get_global(ListDefModule, jl_symbol("nil"))));
 }
 
+static const char* source_message_token(const char** ctokens, int nTokens, int tokenIndex)
+{
+  const char* token = "";
+
+  if (ctokens != NULL && tokenIndex < nTokens) {
+    if (ctokens[tokenIndex] != NULL) {
+      token = ctokens[tokenIndex];
+    }
+  }
+
+  return token;
+}
+
+static size_t formatted_source_message_length(const char* message, const char** ctokens, int nTokens)
+{
+  int tokenIndex = 0;
+  size_t length = 0;
+
+  for (size_t i = 0; message[i] != '\0'; ++i) {
+    if (message[i] == '%' && message[i+1] != '\0') {
+      if (message[i+1] == '%') {
+        ++length;
+        ++i;
+        continue;
+      }
+
+      if (message[i+1] == 's') {
+        length += strlen(source_message_token(ctokens, nTokens, tokenIndex));
+        ++tokenIndex;
+        ++i;
+        continue;
+      }
+    }
+
+    ++length;
+  }
+
+  return length;
+}
+
+static char* format_source_message(const char* message, const char** ctokens, int nTokens)
+{
+  char* formatted = NULL;
+  int tokenIndex = 0;
+  size_t writeIndex = 0;
+
+  if (message == NULL) {
+    return NULL;
+  }
+
+  formatted = malloc(formatted_source_message_length(message, ctokens, nTokens) + 1);
+  if (formatted == NULL) {
+    return NULL;
+  }
+
+  for (size_t i = 0; message[i] != '\0'; ++i) {
+    const char* replacement = NULL;
+    size_t replacementLength = 0;
+
+    if (message[i] == '%' && message[i+1] != '\0') {
+      if (message[i+1] == '%') {
+        replacement = "%";
+        replacementLength = 1;
+        ++i;
+      } else if (message[i+1] == 's') {
+        replacement = source_message_token(ctokens, nTokens, tokenIndex);
+        replacementLength = strlen(replacement);
+        ++tokenIndex;
+        ++i;
+      }
+    }
+
+    if (replacement != NULL) {
+      memcpy(formatted + writeIndex, replacement, replacementLength);
+      writeIndex += replacementLength;
+    } else {
+      formatted[writeIndex++] = message[i];
+    }
+  }
+
+  formatted[writeIndex] = '\0';
+  return formatted;
+}
+
+static void set_last_error_message(const char* rendered_message, jl_value_t* filename, int startLine, int startCol, int endLine, int endCol)
+{
+  parser_members* members = pthread_getspecific(modelicaParserKey);
+  int written = 0;
+  size_t capacity = 0;
+  char* updated = NULL;
+
+  if (members == NULL || rendered_message == NULL) {
+    return;
+  }
+
+  free(members->last_error_message);
+  members->last_error_message = NULL;
+
+  written = snprintf(NULL, 0, "%s:%d:%d-%d:%d: %s",
+    jl_string_data(filename), startLine, startCol, endLine, endCol, rendered_message);
+  if (written < 0) {
+    return;
+  }
+
+  capacity = (size_t) written + 1;
+  updated = (char*) malloc(capacity);
+  if (updated == NULL) {
+    return;
+  }
+
+  snprintf(updated, capacity, "%s:%d:%d-%d:%d: %s",
+    jl_string_data(filename), startLine, startCol, endLine, endCol, rendered_message);
+  members->last_error_message = updated;
+}
+
+OMPARSER_EXPORT const char* OMParser_lastErrorMessage(void)
+{
+  parser_members* members = pthread_getspecific(modelicaParserKey);
+
+  if (members == NULL) {
+    return NULL;
+  }
+
+  return members->last_error_message;
+}
+
+OMPARSER_EXPORT void OMParser_clearLastErrorMessage(void)
+{
+  parser_members* members = pthread_getspecific(modelicaParserKey);
+
+  if (members == NULL) {
+    return;
+  }
+
+  free(members->last_error_message);
+  members->last_error_message = NULL;
+}
+
 void c_add_source_message(
        void *dummy,
        int errorID,
@@ -81,11 +221,16 @@ void c_add_source_message(
        int isReadOnly,
        jl_value_t* filename)
 {
-  int i;
-  fprintf(stderr, "%s:%d:%d-%d:%d: %s\n", jl_string_data(filename), startLine, startCol, endLine, endCol, message);
-  for (i=0; i<nTokens; i++) {
-    fprintf(stderr, "    Error token %d: %s\n", i+1, ctokens[i]);
+  char* formatted = format_source_message(message, ctokens, nTokens);
+  const char* rendered = message;
+
+  if (formatted != NULL) {
+    rendered = formatted;
   }
+
+  set_last_error_message(rendered, filename, startLine, startCol, endLine, endCol);
+  fprintf(stderr, "%s:%d:%d-%d:%d: %s\n", jl_string_data(filename), startLine, startCol, endLine, endCol, rendered);
+  free(formatted);
 }
 
 
@@ -152,4 +297,3 @@ jl_value_t* SourceInfo__SOURCEINFO(jl_value_t* fileName, int isReadOnly, int lin
 }
 
 */
-
