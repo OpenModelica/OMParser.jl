@@ -3,14 +3,20 @@ name: Manual Release
 on:
   workflow_dispatch:
     inputs:
-    myInput:
-      # Friendly description to be shown in the UI instead of 'name'x
-      description: 'Trigger a release built'
-      # Default value if no value is explicitly provided
-      default: 'DBG_RELEASE'
-      # Input has to be provided for the workflow to run
-      required: true
-      type: environment
+      release_tag:
+        description: 'Release tag prefix (e.g. Latest, DBG_RELEASE)'
+        default: 'Latest'
+        required: true
+        type: string
+      julia_versions:
+        description: 'Julia versions to build'
+        default: '["1.12"]'
+        required: true
+        type: choice
+        options:
+          - '["1.12"]'
+          - '["1.11"]'
+          - '["1.11","1.12"]'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   build:
@@ -21,7 +27,7 @@ jobs:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
-        julia-version: ['1.11', '1.12']
+        julia-version: ${{ fromJSON(github.event.inputs.julia_versions) }}
 
     defaults:
       run:
@@ -110,7 +116,7 @@ jobs:
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
-        automatic_release_tag: "${{ github.event.inputs.myInput }}-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}"
+        automatic_release_tag: "${{ github.event.inputs.release_tag }}-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}"
         draft: false
         prerelease: true
         files: |
