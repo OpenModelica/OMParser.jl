@@ -51,7 +51,7 @@ jobs:
       with:
         update: false
         platform-check-severity: warn
-        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
+        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain zip
         path-type: inherit # to find julia!
 
     - name: set git to use LF on Windows
@@ -100,7 +100,6 @@ jobs:
       run: julia --color=yes --project -e 'import Pkg; Pkg.test("Absyn"); Pkg.test("OMParser")'
 
     - name: Package release zip
-      shell: bash
       run: |
         cd "${{ github.workspace }}"
         zip "parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}.zip" \
