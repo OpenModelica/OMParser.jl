@@ -37,15 +37,15 @@ extern "C" {
 #endif
 
 #if defined(_WIN32)
-#define DLLDirection __declspec(dllexport)
+#define OMPARSER_EXPORT __declspec(dllexport)
 #else
-#define DLLDirection /* nothing */
+#define OMPARSER_EXPORT /* nothing */
 #endif
 
 #include <julia.h>
 #include <pthread.h>
 
-DLLDirection extern pthread_key_t modelicaParserKey;
+OMPARSER_EXPORT extern pthread_key_t modelicaParserKey;
 
 #define omc_first_comment ((parser_members*)pthread_getspecific(modelicaParserKey))->first_comment
 #define ModelicaParser_filename_OMC ((parser_members*)pthread_getspecific(modelicaParserKey))->filename_OMC
@@ -67,6 +67,7 @@ typedef struct antlr_members_struct {
   void* timestamp;
   jl_value_t* filename_C;
   jl_value_t* filename_C_testsuiteFriendly;
+  char* last_error_message;
   int readonly;
   int flags;
   int langStd;

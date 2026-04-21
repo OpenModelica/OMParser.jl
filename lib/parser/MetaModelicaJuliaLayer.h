@@ -1,7 +1,7 @@
 #if !defined(__METAMODELICA_JULIA_LAYER__H)
 #define __METAMODELICA_JULIA_LAYER__H
 
-#include <julia.h>
+#include "ModelicaParserCommon.h"
 
 #define jl_debug_println(X) jl_call1(jl_get_function(jl_base_module, "show"), (X));
 
@@ -91,7 +91,7 @@ static inline jl_value_t* mmc_mk_cons_typed(jl_value_t* T, jl_value_t* head, jl_
 
 #if !defined(JL_GC_PUSH1)
 #define JL_GC_PUSH1(arg1)                      \
-  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(1), jl_pgcstack, arg1, arg2, arg3, arg4, arg5, arg6, arg7}; \
+  void *__gc_stkf[] = {(void*)JL_GC_ENCODE_PUSH(1), jl_pgcstack, arg1}; \
   jl_pgcstack = (jl_gcframe_t*)__gc_stkf;
 #endif
 
@@ -147,6 +147,9 @@ extern void c_add_source_message(
        int endCol,
        int isReadOnly,
        jl_value_t* filename);
+
+OMPARSER_EXPORT extern const char* OMParser_lastErrorMessage(void);
+OMPARSER_EXPORT extern void OMParser_clearLastErrorMessage(void);
 
 /* TODO: These should probably be some calls to Julia iconv functions? Or real iconv, who knows... */
 #define SystemImpl__iconv(STR,FROM,TO,ERR) STR
