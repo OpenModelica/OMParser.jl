@@ -59,3 +59,4 @@ lib/parser/configure
 lib/parser/install-sh
 lib/parser/libomantlr3.a
 lib/parser/libomparse-julia.a
+lib/ext/shared/*
