@@ -72,6 +72,20 @@ jobs:
         tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
         mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
 
+    - name: Develop sibling OM.jl packages
+      shell: bash
+      run: |
+        julia --compiled-modules=no --color=yes --project -e '
+          import Pkg
+          Pkg.Registry.add("General")
+          Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"))
+          Pkg.develop([
+            Pkg.PackageSpec(path="../ImmutableList.jl"),
+            Pkg.PackageSpec(path="../MetaModelica.jl"),
+            Pkg.PackageSpec(path="../Absyn.jl"),
+          ])
+        '
+
     - name: Build
       # Always use bash to avoid having to escape quotes for Windows
       shell: bash
