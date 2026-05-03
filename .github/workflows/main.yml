@@ -78,7 +78,7 @@ jobs:
         julia --compiled-modules=no --color=yes --project -e '
           import Pkg
           Pkg.Registry.add("General")
-          Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"))
+          Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/OpenModelica/OpenModelicaRegistry.git"))
           Pkg.develop([
             Pkg.PackageSpec(path="../ImmutableList.jl"),
             Pkg.PackageSpec(path="../MetaModelica.jl"),
@@ -89,7 +89,7 @@ jobs:
     - name: Build
       # Always use bash to avoid having to escape quotes for Windows
       shell: bash
-      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git")); Pkg.build(;verbose = true);Pkg.instantiate(); Pkg.resolve()'
+      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/OpenModelica/OpenModelicaRegistry.git")); Pkg.build(;verbose = true);Pkg.instantiate(); Pkg.resolve()'
 
     - name:  Test
       run: julia --color=yes --project -e 'import Pkg; Pkg.test("Absyn"); Pkg.test("OMParser")'
