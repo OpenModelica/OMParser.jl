@@ -1,7 +1,7 @@
 #=/*
  * This file is part of OpenModelica.
  *
- * Copyright (c) 1998-CurrentYear, Linkoping University,
+ * Copyright (c) 1998-2026, Linkoping University,
  * Department of Computer and Information Science,
  * SE-58183 Linkoping, Sweden.
  *
@@ -62,7 +62,7 @@ import Absyn
 COPYRIGHT_HEADER = "/*
  * This file is part of OpenModelica.
  *
- * Copyright (c) 1998-CurrentYear, Linkoping University,
+ * Copyright (c) 1998-2026, Linkoping University,
  * Department of Computer and Information Science,
  * SE-58183 Linkoping, Sweden.
  *
