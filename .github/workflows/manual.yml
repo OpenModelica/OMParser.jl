@@ -16,10 +16,13 @@ on:
         options:
           - '["1.12"]'
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ${{ matrix.sys.os }}
     strategy:
+      fail-fast: false
       matrix:
         sys:
           - { os: windows-latest, shell: 'msys2 {0}' }

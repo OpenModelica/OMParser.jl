@@ -238,11 +238,14 @@ end
 """
 function generateJL_Asserts(allDataTypes, moduleName)
   local buffer = IOBuffer()
+  #= Resolve the module via Base.require instead of `using` so no binding is
+     created in Main; required for Julia 1.12+ incremental precompilation. =#
+  local moduleUUID = string(Base.PkgId(getproperty(Main, Symbol(moduleName))).uuid)
+  local requireExpr = "Base.require(Base.PkgId(Base.UUID(\\\"$(moduleUUID)\\\"), \\\"$(moduleName)\\\"))"
   local preamble = "
-      jl_eval_string(\"using $(moduleName)\");
-      jl_module_t* $(moduleName) = (jl_module_t *) jl_eval_string(\"$(moduleName)\");
+      jl_module_t* $(moduleName) = (jl_module_t *) jl_eval_string(\"$(requireExpr)\");
       if (!$(moduleName)) {
-        fprintf(stderr, \"module $(moduleName) not loaded, load it via using $(moduleName).\");
+        fprintf(stderr, \"module $(moduleName) not loaded.\");
         fflush(NULL);
       }
       assert(jl_is_module($(moduleName)));"

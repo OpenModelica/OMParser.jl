@@ -8,7 +8,7 @@ import Glob
 """
 The path were the package is located.
 """
-const INSTALLATION_DIRECTORY_PATH = normpath(joinpath(dirname(Base.find_package("OMParser")), ".."))
+const INSTALLATION_DIRECTORY_PATH = normpath(joinpath(@__DIR__, ".."))
 
 """
 Directory containing externally downloaded shared libraries.
