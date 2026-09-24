@@ -26,12 +26,13 @@ function Base.showerror(io::IO, err::ParseError)
 end
 
 function last_parse_error_message()
-  ptr = ccall((:OMParser_lastErrorMessage, ensure_installed_lib_path()), Cstring, ())
+  ensure_installed_lib_path()
+  ptr = ccall((:OMParser_lastErrorMessage, installedLibPath), Cstring, ())
   ptr == C_NULL && return nothing
   try
     unsafe_string(ptr)
   finally
-    ccall((:OMParser_clearLastErrorMessage, ensure_installed_lib_path()), Cvoid, ())
+    ccall((:OMParser_clearLastErrorMessage, installedLibPath), Cvoid, ())
   end
 end
 
@@ -55,10 +56,26 @@ end
 """
   Find parser libraries built locally or downloaded into a known directory.
 """
+# One directory per Julia minor version, so libraries linked against different
+# libjulia sonames coexist instead of clobbering each other.
+const JULIA_LIB_TAG = "julia-$(VERSION.major).$(VERSION.minor)"
+const _VERSIONED_DIR_RE = r"(^|[/\\])julia-[0-9]+\.[0-9]+([/\\]|$)"
+
 function locate_parser_library(base_dir::String)
   isdir(base_dir) || return nothing
   target = parser_library_basename()
+  # A directory matching the running version wins.
+  versioned = joinpath(base_dir, JULIA_LIB_TAG)
+  if isdir(versioned)
+    for (root, _, files) in walkdir(versioned)
+      if target in files
+        return joinpath(root, target)
+      end
+    end
+  end
+  # Fall back to the flat layout, never into another version's directory.
   for (root, _, files) in walkdir(base_dir)
+    occursin(_VERSIONED_DIR_RE, relpath(root, base_dir)) && continue
     if target in files
       return joinpath(root, target)
     end
@@ -89,7 +106,8 @@ function parseString(contents::String,
                      interactiveFileName::String = "<default>",
                      acceptedGram::Int64 = 1,
                      languageStandard::Int64 = 1000)::Absyn.Program
-  local res = ccall((:parseString, ensure_installed_lib_path()), Any, (String, String, Int64, Int64), contents, interactiveFileName, acceptedGram, languageStandard)
+  ensure_installed_lib_path()
+  local res = ccall((:parseString, installedLibPath), Any, (String, String, Int64, Int64), contents, interactiveFileName, acceptedGram, languageStandard)
   if res == nothing
     throw(ParseError(something(last_parse_error_message(), "Parsing failed")))
   end
@@ -115,7 +133,8 @@ Grammar mapping for the `acceptedGram` variable:
 ```
 """
 function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
-  local res = ccall((:parseFile, ensure_installed_lib_path()), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
+  ensure_installed_lib_path()
+  local res = ccall((:parseFile, installedLibPath), Any, (String, Int64, Int64), fileName, acceptedGram, languageStandard)
   if res == nothing
     throw(ParseError(something(last_parse_error_message(), "Parsing failed")))
   end
