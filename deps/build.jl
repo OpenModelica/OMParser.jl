@@ -10,8 +10,9 @@ import ZipFile
 const PACKAGE_ROOT = normpath(joinpath(@__DIR__, ".."))
 const PATH_TO_EXT = mkpath(joinpath(PACKAGE_ROOT, "lib", "ext"))
 const BUILD_LIB_DIR = joinpath(PACKAGE_ROOT, "lib", "build", "lib")
-const SHARED_LIB_DIR = joinpath(PACKAGE_ROOT, "lib", "ext", "shared")
 const JULIA_MAJOR_MINOR = "$(VERSION.major).$(VERSION.minor)"
+# Must match JULIA_LIB_TAG in src/OMParser.jl: one directory per Julia minor version.
+const VERSIONED_LIB_DIR = joinpath(PACKAGE_ROOT, "lib", "julia-$(JULIA_MAJOR_MINOR)")
 
 function installed_package_names()
   names = Set{String}()
@@ -79,7 +80,7 @@ function fetch_release_archive(library_name::String, url::String)
   @info "Downloading shared library from: $url"
   HTTP.download(url, zip_path)
 
-  shared_dir = joinpath(PATH_TO_EXT, "shared")
+  shared_dir = VERSIONED_LIB_DIR
   isdir(shared_dir) && rm(shared_dir; recursive = true, force = true)
   mkpath(shared_dir)
 
@@ -120,8 +121,8 @@ end
 
 if has_parser_library(BUILD_LIB_DIR)
   @info "Using locally built parser library from $BUILD_LIB_DIR"
-elseif has_parser_library(SHARED_LIB_DIR)
-  @info "Using previously downloaded parser library from $SHARED_LIB_DIR"
+elseif has_parser_library(VERSIONED_LIB_DIR)
+  @info "Using previously downloaded parser library from $VERSIONED_LIB_DIR"
 else
   if Sys.iswindows()
     library_name, url = get_library_url("windows-latest")
@@ -135,6 +136,6 @@ else
 
   fetch_release_archive(library_name, url)
 
-  has_parser_library(SHARED_LIB_DIR) ||
-    throw("OMParser build finished without producing a parser library under $(SHARED_LIB_DIR)")
+  has_parser_library(VERSIONED_LIB_DIR) ||
+    throw("OMParser build finished without producing a parser library under $(VERSIONED_LIB_DIR)")
 end

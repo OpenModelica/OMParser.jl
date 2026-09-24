@@ -9,12 +9,13 @@ jobs:
   build:
     runs-on: ${{ matrix.sys.os }}
     strategy:
+      fail-fast: false
       matrix:
         sys:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
-        julia-version: ['1.12']
+        julia-version: ['1.12', '1.13']
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}

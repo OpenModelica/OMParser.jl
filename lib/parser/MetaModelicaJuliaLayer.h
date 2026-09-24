@@ -3,6 +3,12 @@
 
 #include "ModelicaParserCommon.h"
 
+/* Julia 1.13 removed the jl_function_t typedef from the public C API. */
+#if !defined(JL_FUNCTION_T_COMPAT)
+#define JL_FUNCTION_T_COMPAT 1
+typedef jl_value_t jl_function_t;
+#endif
+
 #define jl_debug_println(X) jl_call1(jl_get_function(jl_base_module, "show"), (X));
 
 #define omc_AbsynUtil_isDerCref(IGNORE, X) (X ? jl_call1(omc_jl_isDerCref, X) : jl_nothing)
