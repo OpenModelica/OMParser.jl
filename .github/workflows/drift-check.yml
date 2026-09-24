@@ -1,0 +1,55 @@
+name: Nightly Drift Check
+
+# Detects drift between the PUBLISHED parser binaries (the rolling
+# `Latest-<os>-julia-<ver>` release assets that deps/build.jl downloads) and the
+# current OMJL source/stack. It performs a clean, end-user install of OMFrontend
+# straight from the registry — which downloads the published binary — and smoke
+# tests it. If a stale or broken binary is published (as happened when the
+# `Base.require` parser fix shipped in source but the binaries lagged ~2 months),
+# this job turns red so the drift is caught within a day instead of by users.
+
+on:
+  schedule:
+    # 01:00 UTC. GitHub Actions cron is always UTC and does NOT observe DST, so
+    # this fires at 03:00 Swedish summer time (CEST, UTC+2) and 02:00 in winter
+    # (CET, UTC+1). Adjust to '0 2 * * *' if you prefer 03:00 during winter.
+    - cron: '0 1 * * *'
+  # Allow on-demand runs from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  drift-check:
+    name: Install & smoke-test (${{ matrix.os }}, Julia ${{ matrix.julia-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        julia-version: ['1.12']
+    steps:
+      - name: setup julia environment
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - name: Clean end-user install of OMFrontend from the registry
+        shell: bash
+        run: |
+          julia --color=yes -e '
+            using Pkg
+            Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/OpenModelica/OpenModelicaRegistry.git"))
+            Pkg.Registry.add("General")
+            # Installing from the registry runs OMParser deps/build.jl, which downloads
+            # the published Latest-<os>-julia-<ver> parser binary for this OS.
+            Pkg.add("OMFrontend")
+            # `using` runs OMFrontend.__init__, which parses the builtin library through
+            # the native parser — the exact step a stale/broken binary crashes on.
+            using OMFrontend
+            model = "model HelloWorld\n  Real x(start = 1.0);\nequation\n  der(x) = -x;\nend HelloWorld;\n"
+            tmp = tempname() * ".mo"; write(tmp, model)
+            prog  = OMFrontend.parseFile(tmp, 1)
+            scode = OMFrontend.translateToSCode(prog)
+            @assert prog  !== nothing "parseFile returned nothing"
+            @assert scode !== nothing "translateToSCode returned nothing"
+            @info "OMFrontend drift smoke test OK" julia=VERSION parsed=typeof(prog) scode=typeof(scode)
+          '
