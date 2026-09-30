@@ -28,3 +28,4 @@ jobs:
       # uses it, and the master line does not resolve yet (OMFrontend master
       # requires OMParser 0.1).
       line: "1.13"
+      julia-versions: '["1.13"]'  # the 1.13 line is tested on Julia 1.13
