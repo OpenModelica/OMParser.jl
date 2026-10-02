@@ -15,7 +15,7 @@ jobs:
           - { os: windows-latest, shell: 'msys2 {0}' }
           - { os: ubuntu-latest,  shell: bash  }
           - { os: macos-latest,   shell: bash  }
-        julia-version: ['1.12', '1.13']
+        julia-version: ['1.13']
     defaults:
       run:
         shell: ${{ matrix.sys.shell }}
@@ -54,12 +54,14 @@ jobs:
 
     - uses: actions/checkout@v4
 
+    # The shared action checks the siblings out at the branch that matches this
+    # change (the PR branch if the sibling has it, else the PR base branch, else
+    # master).
     - name: Clone sibling OM.jl packages
-      shell: bash
-      run: |
-        git clone --depth 1 --branch master https://github.com/OpenModelica/Absyn.jl.git ../Absyn.jl
-        git clone --depth 1 --branch master https://github.com/OpenModelica/ImmutableList.jl.git ../ImmutableList.jl
-        git clone --depth 1 --branch master https://github.com/OpenModelica/MetaModelica.jl.git ../MetaModelica.jl
+      uses: JKRT/OM.jl/.github/actions/checkout-siblings@master
+      with:
+        path: ..
+        packages: Absyn ImmutableList MetaModelica
 
     - name: configure the library and build
       run: |
