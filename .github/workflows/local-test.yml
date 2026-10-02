@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        julia-version: ['1.12', '1.13']
+        julia-version: ['1.13']
     name: Build parser (Julia ${{ matrix.julia-version }})
     steps:
     - uses: actions/setup-java@v4
