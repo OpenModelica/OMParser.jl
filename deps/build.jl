@@ -1,7 +1,9 @@
 #= Build script for the OpenModelica parser. =#
 @info "Building OpenModelicaParser A Modelica Parser in Julia"
 
-import HTTP
+#= Downloads (stdlib), not HTTP: HTTP 2 dropped HTTP.download, and with no compat
+   bound Julia 1.13 resolves HTTP 2 (2026-10-02). =#
+import Downloads
 import Inflate
 import Pkg
 import Tar
@@ -78,7 +80,7 @@ end
 function fetch_release_archive(library_name::String, url::String)
   zip_path = joinpath(PATH_TO_EXT, string(library_name, ".zip"))
   @info "Downloading shared library from: $url"
-  HTTP.download(url, zip_path)
+  Downloads.download(url, zip_path)
 
   shared_dir = VERSIONED_LIB_DIR
   isdir(shared_dir) && rm(shared_dir; recursive = true, force = true)
