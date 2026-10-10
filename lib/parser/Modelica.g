@@ -595,7 +595,7 @@ implicit_import_name returns [void* ast]
 // allowing the comment.
 extends_clause returns [void* ast]
 @init { OM_PUSHZ3(path, mod, ann); } :
-  EXTENDS path=name_path (mod=class_modification)? (ann=annotation)?
+  EXTENDS path=name_path (mod=class_or_inheritance_modification)? (ann=annotation)?
   {
     ast = Absyn__EXTENDS(path,or_nil(mod),mmc_mk_some_or_none(ann));
   }
@@ -741,37 +741,66 @@ declaration returns [void* ast]
  */
 
 modification returns [void* ast]
-@init { OM_PUSHZ2(e.ast, cm); eq = 0; } :
-  ( cm=class_modification ( eq=EQUALS e=expression[metamodelica_enabled()] )?
-  | eq=EQUALS e=expression[metamodelica_enabled()]
-  | eq=ASSIGN e=expression[metamodelica_enabled()] {c_add_source_message(NULL,2, ErrorType_syntax, ErrorLevel_warning, ":= in modifiers has been deprecated",
+@init { OM_PUSHZ2(e, cm); eq = 0; } :
+  ( cm=class_modification ( eq=EQUALS e=modification_expression )?
+  | eq=EQUALS e=modification_expression
+  | eq=ASSIGN e=modification_expression {c_add_source_message(NULL,2, ErrorType_syntax, ErrorLevel_warning, ":= in modifiers has been deprecated",
               NULL, 0, $start->line, $start->charPosition+1, LT(1)->line, LT(1)->charPosition+1,
               ModelicaParser_readonly, ModelicaParser_filename_C_testsuiteFriendly);}
   )
     {
-      $ast = Absyn__CLASSMOD(or_nil(cm), e.ast ? Absyn__EQMOD(e.ast,PARSER_INFO($eq)) : Absyn__NOMOD);
+      $ast = Absyn__CLASSMOD(or_nil(cm), e ? Absyn__EQMOD(e,PARSER_INFO($eq)) : Absyn__NOMOD);
     }
   ;
   finally{ OM_POP(2); }
+
+/* A modifier's value, or `break` to remove the binding (Modelica 3.6). */
+modification_expression returns [void* ast]
+@init { OM_PUSHZ1(e.ast); } :
+    e=expression[metamodelica_enabled()] { ast = e.ast; }
+  | BREAK        { ast = Absyn__BREAK; }
+  ;
+  finally{ OM_POP(1); }
 
 class_modification returns [void* ast]
 @init { OM_PUSHZ2(as, ast); } :
-  LPAR ( as=argument_list )? RPAR { ast = or_nil(as); }
+  LPAR ( as=argument_list[0] )? RPAR { ast = or_nil(as); }
   ;
   finally{ OM_POP(2); }
 
-argument_list returns [void* ast]
-@init { OM_PUSHZ3(a, as, ast); } :
-  a=argument ( COMMA as=argument_list )?
+/* The modification of an extends clause, which may also break inherited elements (Modelica 3.6
+   selective model extension). */
+class_or_inheritance_modification returns [void* ast]
+@init { OM_PUSHZ2(as, ast); } :
+  LPAR ( as=argument_list[1] )? RPAR { ast = or_nil(as); }
+  ;
+  finally{ OM_POP(2); }
+
+argument_list [int canHaveBreak] returns [void* ast]
+@init { OM_PUSHZ4(a, b.ast, as, ast); } :
+  (a=argument | {canHaveBreak == 1}? b=inheritance_modification) ( COMMA as=argument_list[canHaveBreak] )?
   {
-    if (!a)
-    {
-       fprintf(stderr, "crap!\n");
-    }
-    ast = mmc_mk_cons_typed(Absyn_ElementArg, a, or_nil(as));
+    ast = mmc_mk_cons_typed(Absyn_ElementArg, a ? a : b.ast, or_nil(as));
   }
   ;
-  finally{ OM_POP(3); }
+  finally{ OM_POP(4); }
+
+/* `break x` (stored as connect(break, x), as omc) or `break connect(a, b)`. */
+inheritance_modification returns [void* ast]
+@init { i = 0; OM_PUSHZ1(c); } :
+  BREAK ( c=connect_clause { $ast = Absyn__INHERITANCEBREAK(c, PARSER_INFO($start)); }
+        | i=IDENT
+          {
+            $ast = Absyn__INHERITANCEBREAK(
+              Absyn__EQ_5fCONNECT(
+                Absyn__CREF_5fIDENT(mmc_mk_scon("break"),mmc_mk_nil()),
+                Absyn__CREF_5fIDENT(token_to_scon(i),mmc_mk_nil())
+              ),
+              PARSER_INFO($start));
+          }
+        )
+  ;
+  finally{ OM_POP(1); }
 
 argument returns [void* ast]
 @init { OM_PUSHZ2(em, er.ast); } :
