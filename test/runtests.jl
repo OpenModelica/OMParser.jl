@@ -92,6 +92,29 @@ cd(@__DIR__) do
   include("metaModelicaTests.jl")
 
   #= Warning might be flaky... =#
+  #= Modelica 3.6 selective model extension. =#
+  @testset "Break modifiers" begin
+    local p = OMParser.parseString("""
+      model B
+        extends A(break x, break connect(a.p, b.n), y = 2);
+        Real z(start = break) = break;
+      end B;
+    """)
+    local parts = p.classes.head.body.classParts.head.contents
+    local ext = parts.head.element.specification
+    local args = collect(ext.elementArg)
+    @test length(args) == 3
+    @test args[1] isa OMParser.Absyn.INHERITANCEBREAK
+    @test args[1].cnct.connector1.name == "break" && args[1].cnct.connector2.name == "x"
+    @test args[2] isa OMParser.Absyn.INHERITANCEBREAK
+    @test args[2].cnct.connector1 isa OMParser.Absyn.CREF_QUAL
+    @test args[3] isa OMParser.Absyn.MODIFICATION
+    local comp = parts.tail.head.element.specification.components.head.component
+    @test comp.modification.data.eqMod.exp isa OMParser.Absyn.BREAK
+    #= Only extends clauses may break elements. =#
+    @test_throws Exception OMParser.parseString("model M A a(break x); end M;")
+  end
+
   @testset "Standard Library" begin
     @test true == begin
       try
