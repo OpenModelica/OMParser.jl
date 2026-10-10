@@ -178,6 +178,10 @@ function programExternalHeaderJulia(allDataTypes, moduleName)
   local jlValues::String = generateJL_Values(allDataTypes)
   #= Generate all JL values=#
   println(buffer, jlValues)
+  println(buffer, "jl_value_t *OMParser_missingAbsyn(const char *name) {")
+  println(buffer, "  jl_errorf(\"The loaded Absyn package has no Absyn.%s, which this OMParser library builds: update Absyn.\", name);")
+  println(buffer, "  return NULL;")
+  println(buffer, "}")
   println(buffer, "void OpenModelica_initAbsynReferences() {")
   #= Get the code in the body of initAbsynReferences =#
   local jlAsserts = generateJL_Asserts(allDataTypes, moduleName)
@@ -278,10 +282,13 @@ function generateJL_Asserts(allDataTypes, moduleName)
       local qualifiedName = getSuperTypePath(dataType)
       #= Get qualified path for basic datatype =#
       local baseTypeStr = components[2]
-      local assertStr1 = "assert(($qualifiedName = jl_get_function($(moduleName), \"$(baseTypeStr)\")));"
-      local assertStr2 = "assert(($(qualifiedName)_type = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"))));"
-      println(buffer, assertStr1)
-      println(buffer, assertStr2)
+      #= Not asserted: a record the loaded Absyn lacks (an older Absyn than the grammar's) stays
+         NULL, and only the syntax that builds it fails (OMParser_missingAbsyn), so a library built
+         from a newer grammar still works with an older Absyn. =#
+      local assignStr1 = "$qualifiedName = jl_get_function($(moduleName), \"$(baseTypeStr)\");"
+      local assignStr2 = "$(qualifiedName)_type = jl_get_global($(moduleName), jl_symbol(\"$(baseTypeStr)\"));"
+      println(buffer, assignStr1)
+      println(buffer, assignStr2)
       #=TODO is the double underscore important?=#
     end
   end
@@ -300,6 +307,7 @@ This is followed by a function definition
 function generateExternalDeclarations(allSuperTypes)
   local buffer = IOBuffer()
   println(buffer, "/* Extern declarations */")
+  println(buffer, "jl_value_t *OMParser_missingAbsyn(const char *name);")
   for superType in allSuperTypes
     local subTypes = subtypes(superType)
     local components = split(string(superType), ".")
@@ -325,7 +333,7 @@ function generateExternalDeclarations(allSuperTypes)
       local fieldNameLength = length(fieldNames)
       local fullName = string("Absyn__", replace(getBaseNameAsStr(subType), "_" => "_5f"))
       if fieldNameLength  == 0
-        println(buffer, "#define $(fullName) jl_call0($(qualifiedName))")
+        println(buffer, "#define $(fullName) ($(qualifiedName) ? jl_call0($(qualifiedName)) : OMParser_missingAbsyn(\"$(baseTypeStr)\"))")
       elseif fieldNameLength <= 3
         local fieldNamesAsStrWithType = join(map((x) -> string("jl_value_t *", x), fieldNames), ", ")
         local fieldNamesAsStrWithoutType = join(map(string, fieldNames), ", ")
@@ -334,6 +342,7 @@ function generateExternalDeclarations(allSuperTypes)
         local body = string("return ","jl_call", string(fieldNameLength), "(", qualifiedName, ", " ,fieldNamesAsStrWithoutType, ")", ";")
         local staticFuncEpilog = "}"
         println(buffer, staticFuncHeader)
+        println(buffer, "if (!$(qualifiedName)) return OMParser_missingAbsyn(\"$(baseTypeStr)\");")
         println(buffer, body)
         println(buffer, staticFuncEpilog)
       else
@@ -345,6 +354,7 @@ function generateExternalDeclarations(allSuperTypes)
         local returnStmt = string("return ","jl_call", "(", qualifiedName, ", " ,"values, ",  "$(fieldNameLength)" ,")", ";")
         local staticFuncEpilog = "}"
         println(buffer, staticFuncHeader)
+        println(buffer, "if (!$(qualifiedName)) return OMParser_missingAbsyn(\"$(baseTypeStr)\");")
         println(buffer, arrayDecl)
         println(buffer, returnStmt)
         println(buffer, staticFuncEpilog)
