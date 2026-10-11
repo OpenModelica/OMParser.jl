@@ -115,6 +115,23 @@ cd(@__DIR__) do
     @test_throws Exception OMParser.parseString("model M A a(break x); end M;")
   end
 
+  @testset "Subscripted expressions and pure()" begin
+    local p = OMParser.parseString("""
+      model S
+        Real y = ({1, 2, 3})[2];
+        Real z = pure(f(time));
+      end S;
+    """)
+    local comps = p.classes.head.body.classParts.head.contents
+    local y = comps.head.element.specification.components.head.component.modification.data.eqMod.exp
+    @test y isa OMParser.Absyn.SUBSCRIPTED_EXP
+    @test y.exp isa OMParser.Absyn.ARRAY
+    local z = comps.tail.head.element.specification.components.head.component.modification.data.eqMod.exp
+    @test z isa OMParser.Absyn.CALL && z.function_.name == "pure"
+    #= A tuple can not be subscripted. =#
+    @test_throws Exception OMParser.parseString("model M Real y = (1, 2)[1]; end M;")
+  end
+
   @testset "Standard Library" begin
     @test true == begin
       try
