@@ -3,6 +3,7 @@
 *.so
 *.zip
 Manifest.toml
+Manifest-v*.toml
 confdefs*
 conftest.*
 lib/3rdParty/antlr/3.2/libantlr3c-3.2/.deps/
@@ -16,6 +17,8 @@ lib/3rdParty/antlr/3.2/libantlr3c-3.2/configure~
 lib/3rdParty/antlr/3.2/libantlr3c-3.2/libtool
 lib/3rdParty/antlr/3.2/libantlr3c-3.2/stamp-h1
 lib/build/
+# parser library per Julia version (deps/build.jl)
+lib/julia-*/
 lib/ext/ubuntu-latest-library.tar
 lib/ext/ubuntu-latest-library.tar.gz
 lib/ext/windows-latest-library.tar
