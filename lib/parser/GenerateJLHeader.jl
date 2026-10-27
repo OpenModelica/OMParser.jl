@@ -41,18 +41,17 @@ Pkg.Registry.add("General")
 #= Add the Modelica registry =#
 Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/JKRT/OpenModelicaRegistry.git"));
 
+#= Use MetaModelica, Absyn and ImmutableList from the active environment when it has
+   them (JULIA_CMD="julia --project=<env>"). Otherwise add the latest from master to a
+   temporary environment, not to the active one: for a plain `julia` that is the
+   default environment, where a git-tracked MetaModelica keeps its version and makes
+   installing OM.jl unsatisfiable. =#
 pkgs = Pkg.installed()
-if ! ("MetaModelica" in keys(pkgs))
-  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"))
-end
-
-#= Add the latest Absyn from the master branch but only if Absyn is not installed =#
-if ! ("Absyn" in keys(pkgs))
-  Pkg.add(Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"))
-end
-
-if ! ("ImmutableList" in keys(pkgs))
-  Pkg.add("ImmutableList")
+if !all(name -> name in keys(pkgs), ("MetaModelica", "Absyn", "ImmutableList"))
+  Pkg.activate(; temp = true)
+  Pkg.add([Pkg.PackageSpec(url="https://github.com/OpenModelica/MetaModelica.jl.git", rev="master"),
+           Pkg.PackageSpec(url="https://github.com/OpenModelica/Absyn.jl.git", rev="master"),
+           Pkg.PackageSpec(name="ImmutableList")])
 end
 
 Pkg.resolve()
