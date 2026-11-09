@@ -81,12 +81,13 @@ function Dialect(acceptedGram::Int, langStd::Int)
 end
 
 """
-    SyntaxError <: Exception
+    ParseError <: Exception
 
 A lexical or syntax error: where it is (file, line, column of the first character, 1-based) and
-what is wrong. `sourceLine` is the text of the line, shown with a caret under the column.
+what is wrong. `sourceLine` is the text of the line, shown with a caret under the column. Line 0:
+the file could not be read.
 """
-struct SyntaxError <: Exception
+struct ParseError <: Exception
   fileName::String
   line::Int
   column::Int
@@ -94,7 +95,11 @@ struct SyntaxError <: Exception
   sourceLine::String
 end
 
-function Base.showerror(io::IO, err::SyntaxError)
+function Base.showerror(io::IO, err::ParseError)
+  if err.line == 0
+    print(io, err.fileName, ": ", err.message)
+    return
+  end
   print(io, err.fileName, ":", err.line, ":", err.column, ": ", err.message)
   if !isempty(err.sourceLine)
     local shown::String = replace(err.sourceLine, '\t' => ' ')
@@ -233,10 +238,10 @@ end
 """
     lexError(source::String, fileName::String, line::Int, lineStart::Int, pos::Int, message::String)
 
-Throw the `SyntaxError` of a lexical error at byte `pos` on `line` (which starts at `lineStart`).
+Throw the `ParseError` of a lexical error at byte `pos` on `line` (which starts at `lineStart`).
 """
 function lexError(source::String, fileName::String, line::Int, lineStart::Int, pos::Int, message::String)
-  throw(SyntaxError(fileName, line, displayColumn(source, lineStart, pos), message, sourceLineAt(source, pos)))
+  throw(ParseError(fileName, line, displayColumn(source, lineStart, pos), message, sourceLineAt(source, pos)))
 end
 
 """
@@ -256,7 +261,7 @@ end
     tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
 
 Split `source` into tokens as the ANTLR lexers do (`Modelica_3_Lexer`, or `MetaModelica_Lexer`
-for MetaModelica). Whitespace is skipped, comments are kept apart. Throws a `SyntaxError` for
+for MetaModelica). Whitespace is skipped, comments are kept apart. Throws a `ParseError` for
 input the lexers reject (an unknown character, an unterminated string or comment, `&&`, `||`,
 `!`, an exponent without digits).
 """

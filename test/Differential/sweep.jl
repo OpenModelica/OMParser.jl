@@ -1,7 +1,8 @@
 #=
-Compare the recursive-descent parser with the ANTLR parser on many files.
+Compare the parser with OMParser 0.2's ANTLR/C parser on many files.
 
-  julia --project=<env with OMParser> sweep.jl <out.tsv> <root> [<root> ...]
+  OMPARSER_REFERENCE_LIB=<libomparse-julia of OMParser 0.2.4> \
+    julia --project=<env with OMParser> sweep.jl <out.tsv> <root> [<root> ...]
 
 Every `.mo` file under the roots is parsed by both parsers (MetaModelica grammar for files
 under a `metamodelica` directory or the OMCompiler sources, Modelica otherwise). Each line of
@@ -9,8 +10,6 @@ under a `metamodelica` directory or the OMCompiler sources, Modelica otherwise).
 newfail. Lines are flushed one by one, so a crash leaves the files done so far; files already in
 `out.tsv` are skipped when it is run again.
 =#
-
-import OMParser
 
 include(joinpath(@__DIR__, "absynDiff.jl"))
 

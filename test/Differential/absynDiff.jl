@@ -1,9 +1,59 @@
 #=
 Deep comparison of two Absyn trees: the same types and the same field values everywhere,
-SourceInfo included. Used to check the recursive-descent parser against the ANTLR parser.
+SourceInfo included. Used to check the parser against OMParser 0.2's ANTLR/C parser, loaded from
+its library in the same session.
 =#
 
 import ImmutableList
+import OMParser
+
+"""
+    REFERENCE_LIB
+
+The OMParser 0.2 C library (`libomparse-julia`) the trees are compared against, from
+`ENV["OMPARSER_REFERENCE_LIB"]`: the library of the OMParser.jl v0.2.4 release for this Julia
+version and platform, or a build of its `lib/parser`. It finds Absyn, ImmutableList and
+MetaModelica by UUID and calls `OMParser.isDerCref`, so its trees have the types of the trees
+`OMParser.parseFile` builds.
+"""
+const REFERENCE_LIB = get(ENV, "OMPARSER_REFERENCE_LIB", "")
+
+"""
+    referenceError()::String
+
+The reference library's last error message.
+"""
+function referenceError()::String
+  local ptr::Cstring = ccall((:OMParser_lastErrorMessage, REFERENCE_LIB), Cstring, ())
+  ptr == C_NULL && return "Parsing failed"
+  local message::String = unsafe_string(ptr)
+  ccall((:OMParser_clearLastErrorMessage, REFERENCE_LIB), Cvoid, ())
+  return message
+end
+
+"""
+    referenceParseFile(file::String, gram::Int, langStd::Int)
+
+`parseFile` of OMParser 0.2 (readOnly false).
+"""
+function referenceParseFile(file::String, gram::Int, langStd::Int)
+  isempty(REFERENCE_LIB) && error("set OMPARSER_REFERENCE_LIB to an OMParser 0.2 libomparse-julia")
+  local res::Any = ccall((:parseFile, REFERENCE_LIB), Any, (String, Int64, Int64), file, gram, langStd)
+  res === nothing && error(referenceError())
+  return res
+end
+
+"""
+    referenceParseString(src::String, name::String, gram::Int, langStd::Int)
+
+`parseString` of OMParser 0.2 (readOnly true).
+"""
+function referenceParseString(src::String, name::String, gram::Int, langStd::Int)
+  isempty(REFERENCE_LIB) && error("set OMPARSER_REFERENCE_LIB to an OMParser 0.2 libomparse-julia")
+  local res::Any = ccall((:parseString, REFERENCE_LIB), Any, (String, String, Int64, Int64), src, name, gram, langStd)
+  res === nothing && error(referenceError())
+  return res
+end
 
 """
     firstDifference(a, b, path::String = "")::Union{Nothing, String}
@@ -47,8 +97,7 @@ end
 """
     compareParsers(file::String; gram::Int = 1, langStd::Int = 9999)
 
-Parse `file` with the ANTLR parser (`OMParser.parseFile`) and the recursive-descent parser and
-return `(:same, nothing)`, `(:diff, path)`, `(:bothfail, message)`, `(:oldfail, message)` or
+Parse `file` with OMParser 0.2 (`referenceParseFile`) and `OMParser.parseFile` and return `(:same, nothing)`, `(:diff, path)`, `(:bothfail, message)`, `(:oldfail, message)` or
 `(:newfail, message)`.
 """
 function compareParsers(file::String; gram::Int = 1, langStd::Int = 9999)
@@ -57,12 +106,12 @@ function compareParsers(file::String; gram::Int = 1, langStd::Int = 9999)
   local oldErr::Any = nothing
   local newErr::Any = nothing
   try
-    old = OMParser.parseFile(file, gram, langStd)
+    old = referenceParseFile(file, gram, langStd)
   catch err
     oldErr = err
   end
   try
-    new = OMParser.RD.parse(read(file, String), file, gram, langStd, false)
+    new = OMParser.parseFile(file, gram, langStd)
   catch err
     newErr = err
   end
@@ -80,7 +129,7 @@ end
 """
     compareStrings(src::String; name::String = "<test>", gram::Int = 1, langStd::Int = 1000)
 
-`compareParsers` for a source string (`OMParser.parseString` against `RD.parse` read-only).
+`compareParsers` for a source string (`referenceParseString` against `OMParser.parseString`).
 """
 function compareStrings(src::String; name::String = "<test>", gram::Int = 1, langStd::Int = 1000)
   local old::Any = nothing
@@ -88,12 +137,12 @@ function compareStrings(src::String; name::String = "<test>", gram::Int = 1, lan
   local oldErr::Any = nothing
   local newErr::Any = nothing
   try
-    old = OMParser.parseString(src, name, gram, langStd)
+    old = referenceParseString(src, name, gram, langStd)
   catch err
     oldErr = err
   end
   try
-    new = OMParser.RD.parse(src, name, gram, langStd, true)
+    new = OMParser.parseString(src, name, gram, langStd)
   catch err
     newErr = err
   end

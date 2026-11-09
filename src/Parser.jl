@@ -27,9 +27,10 @@ CONDITIONS OF OSMC-PL.
 =#
 
 #=
-The parser: one function per rule of the ANTLR grammar (lib/parser/Modelica.g), building the same
-Absyn values with the same calls as its actions (the constructors, `SOME`, typed and untyped
-`cons`, `listReverse`), so the trees are identical, SourceInfo and comment items included.
+The parser: one function per rule of omc's ANTLR grammar (`OMCompiler/Parser/Modelica.g` in the
+OpenModelica repository), building the same Absyn values with the same calls as its actions (the
+constructors, `SOME`, typed and untyped `cons`, `listReverse`), so the trees are identical,
+SourceInfo and comment items included.
 Recursive list rules are loops that cons from the end, which makes the same calls in the same
 order.
 =#
@@ -159,24 +160,40 @@ end
 """
     errorAt(p::Parser, i::Int, message::String)
 
-Throw a `SyntaxError` at token `i`.
+Throw a `ParseError` at token `i`.
 """
 function errorAt(p::Parser, i::Int, message::String)
   local ts::Tokens = p.ts
   local pos::Int = Int(ts.start[i])
   local line::Int = Int(ts.line[i])
   local lineStart::Int = pos - Int(ts.rawColumn[i]) - (line == 1 ? 1 : 0)
-  throw(SyntaxError(p.fileName, line, displayColumn(ts.source, lineStart, pos), message, sourceLineAt(ts.source, pos)))
+  throw(ParseError(p.fileName, line, displayColumn(ts.source, lineStart, pos), message, sourceLineAt(ts.source, pos)))
 end
 
 """
     expectedError(p::Parser, expected::String, context::String = "")
 
-Throw "Expected <expected> [<context>] but found <next token>" at the next token.
+Throw "Expected <expected> [<context>] but found <next token>" at the next token. When the next
+token is on a later line than the end of the token before it (a `;` missing at the end of a
+line), the error is right after that token and names the next token's line.
 """
 function expectedError(p::Parser, expected::String, context::String = "")
   local where_::String = isempty(context) ? "" : " " * context
-  errorAt(p, p.pos, "Expected " * expected * where_ * " but found " * describeToken(p, p.pos))
+  local message::String = "Expected " * expected * where_ * " but found " * describeToken(p, p.pos)
+  local ts::Tokens = p.ts
+  local prev::Int = p.pos - 1
+  if prev >= 1
+    local prevEnd::Int = Int(ts.textStop[prev]) + (p.kinds[prev] == TK_STRING ? 1 : 0)
+    local cu::Base.CodeUnits{UInt8, String} = codeunits(ts.source)
+    local prevEndLine::Int = Int(ts.line[prev]) + count(==(0x0a), view(cu, Int(ts.start[prev]):prevEnd))
+    if Int(ts.line[p.pos]) > prevEndLine
+      local pos::Int = prevEnd + 1
+      local lineStart::Int = something(findprev(==(0x0a), cu, prevEnd), 0) + 1
+      throw(ParseError(p.fileName, prevEndLine, displayColumn(ts.source, lineStart, pos),
+                       message * " on line " * string(ts.line[p.pos]), sourceLineAt(ts.source, prevEnd)))
+    end
+  end
+  errorAt(p, p.pos, message)
 end
 
 #= Comments: the comment tokens before the next token become comment items. =#
@@ -1487,7 +1504,7 @@ end
 """
     isDerCref(exp::Absyn.Exp)::Bool
 
-`der(cref)` (the C layer calls `OMParser.isDerCref`).
+`der(cref)`. (The 0.2 C parser calls `OMParser.isDerCref` too: `test/Differential` loads it.)
 """
 function isDerCref(exp::Absyn.Exp)::Bool
   exp isa Absyn.CALL || return false
@@ -2793,7 +2810,7 @@ function speculateExpressionThen(p::Parser, k::TokenKind, parenthesized::Bool)::
       ok = la(p) == k
     end
   catch err
-    err isa SyntaxError || rethrow()
+    err isa ParseError || rethrow()
     ok = false
   end
   p.pos = pos
@@ -2937,11 +2954,11 @@ end
 #= Entry =#
 
 """
-    parse(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
+    parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
 
-Tokenize and parse a Modelica (or MetaModelica, ...) source. Throws a `SyntaxError`.
+Tokenize and parse a Modelica (or MetaModelica, ...) source. Throws a `ParseError`.
 """
-function parse(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
+function parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
   local dialect::Dialect = Dialect(acceptedGram, langStd)
   local ts::Tokens = tokenize(source, fileName, dialect)
   local p::Parser = Parser(ts, dialect, readOnly)
