@@ -97,4 +97,6 @@ function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::
   return parseSource(source, fileName, acceptedGram, languageStandard, false)
 end
 
+include("Precompile.jl")
+
 end

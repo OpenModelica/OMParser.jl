@@ -36,7 +36,6 @@ order.
 =#
 
 const NIL = ImmutableList.ListDef.nil
-const consT = ImmutableList.ListDef.consExternalC
 const consU = ImmutableList.ListDef.cons
 const listRev = MetaModelica.listReverse
 const SOME = MetaModelica.SOME
@@ -322,6 +321,24 @@ end
 
 @inline someOrNone(x::Nothing)::Nothing = nothing
 @inline someOrNone(x::T) where {T} = SOME(x)
+
+"""
+    someOf(::Type{T}, x::Union{Nothing, T})::Union{Nothing, SOME{T}}
+
+`SOME(x)` (or `nothing`) as a field of type `Option{T}` holds it: the constructors convert a
+`SOME{S}` to `SOME{T}`. With the field's type the constructor call is resolved when compiled, also
+when `T` is abstract.
+"""
+@inline someOf(::Type{T}, x::Union{Nothing, T}) where {T} = x === nothing ? nothing : SOME{T}(x)
+
+"""
+    consT(::Type{T}, head::T, tail::Union{ImmutableList.ListDef.Nil, ImmutableList.ListDef.Cons{T}})::ImmutableList.ListDef.Cons{T}
+
+`consExternalC` of the C layer: a `Cons{T}`. Resolved when compiled, also when `T` is abstract
+(`consExternalC`'s `X <: T` parameter is not).
+"""
+@inline consT(::Type{T}, head::T, tail::Union{ImmutableList.ListDef.Nil, ImmutableList.ListDef.Cons{T}}) where {T} =
+  ImmutableList.ListDef.Cons{T}(head, tail)
 
 @inline orNil(x::Nothing) = NIL
 @inline orNil(x::T) where {T} = x
@@ -742,9 +759,9 @@ function externalClause(p::Parser)::ImmutableList.List{Absyn.ClassPart}
   end
   local ann1::Union{Nothing, Absyn.Annotation} = la(p) == TK_ANNOTATION ? annotation(p) : nothing
   expect!(p, TK_SEMICOLON, "after the external clause")
-  local decl::Absyn.ExternalDecl = Absyn.EXTERNALDECL(funcname === nothing ? nothing : SOME(funcname),
-                                                      someOrNone(lang), someOrNone(retexp), orNil(expl),
-                                                      someOrNone(ann1))
+  local decl::Absyn.ExternalDecl = Absyn.EXTERNALDECL(someOf(String, funcname),
+                                                      someOf(String, lang), someOf(Absyn.ComponentRef, retexp),
+                                                      orNil(expl), someOf(Absyn.Annotation, ann1))
   return consT(Absyn.ClassPart, Absyn.EXTERNAL(decl, nothing), NIL)
 end
 
@@ -986,9 +1003,9 @@ function typeSpecifier(p::Parser)::Absyn.TypeSpec
   local tsp::TypeSpecifierParts = typeSpecifierParts(p)
   local args::Union{Nothing, ImmutableList.List{Absyn.TypeSpec}} = tsp.typeArgs
   if args !== nothing
-    return Absyn.TCOMPLEX(tsp.path, args, someOrNone(tsp.dims))
+    return Absyn.TCOMPLEX(tsp.path, args, someOf(ImmutableList.List{Absyn.Subscript}, tsp.dims))
   end
-  return Absyn.TPATH(tsp.path, someOrNone(tsp.dims))
+  return Absyn.TPATH(tsp.path, someOf(ImmutableList.List{Absyn.Subscript}, tsp.dims))
 end
 
 """
@@ -1038,7 +1055,7 @@ function componentDeclaration(p::Parser)::Absyn.ComponentItem
     cond = expression(p, p.metaModelica)
   end
   local cmt::Union{Nothing, Absyn.Comment} = comment(p)
-  return Absyn.COMPONENTITEM(decl, someOrNone(cond), someOrNone(cmt))
+  return Absyn.COMPONENTITEM(decl, someOf(Absyn.Exp, cond), someOf(Absyn.Comment, cmt))
 end
 
 """
@@ -1587,15 +1604,16 @@ function conditionalEquationE(p::Parser)::Absyn.Equation
 end
 
 """
-    elseIfList(branches::Vector{T}) where {T}
+    elseIfList(branches::Vector{E})::ImmutableList.List{E} where {E}
 
-The untyped cons list of `(condition, body)` tuples of `elseif`/`elsewhen` branches (or `nil`).
+The list of `(condition, body)` tuples of `elseif`/`elsewhen` branches (or `nil`). The C layer
+conses them untyped, and the constructors convert that list to the field's type, `List{E}`: built
+here as a `List{E}` it is the same list.
 """
-function elseIfList(branches::Vector{T}) where {T}
-  local ast::Any = NIL
+function elseIfList(branches::Vector{E})::ImmutableList.List{E} where {E}
+  local ast::ImmutableList.List{E} = NIL
   for i::Int in length(branches):-1:1
-    local b::T = branches[i]
-    ast = consU(Base.tuple(b[1], b[2]), ast)
+    ast = consT(E, branches[i], ast)
   end
   return ast
 end
@@ -1778,11 +1796,10 @@ function reconfigureBlock(p::Parser)::Absyn.Equation
     end
     la(p) == TK_WHEN || break
   end
-  local cl::Any = NIL
-  for c::Absyn.WhenClause in clauses
-    cl = consU(c, cl)
+  local cl::ImmutableList.List{Absyn.WhenClause} = NIL
+  for i::Int in length(clauses):-1:1
+    cl = consT(Absyn.WhenClause, clauses[i], cl)
   end
-  cl = listRev(cl)
   local promptOpt::Union{Nothing, Absyn.Exp} = nothing
   if la(p) == TK_PROMPT
     advance!(p)
@@ -1804,7 +1821,8 @@ function reconfigureBlock(p::Parser)::Absyn.Equation
     initEqs = equationList(p)
   end
   expect!(p, TK_END_RECONFIGURE)
-  return Absyn.EQ_RECONFIGURE(vars, cl, someOrNone(promptOpt), someOrNone(mod), someOrNone(initEqs))
+  return Absyn.EQ_RECONFIGURE(vars, cl, someOf(Absyn.Exp, promptOpt), someOf(ImmutableList.List{Absyn.EquationItem}, mod),
+                              someOf(ImmutableList.List{Absyn.EquationItem}, initEqs))
 end
 
 """
@@ -1996,7 +2014,7 @@ function forIndex(p::Parser)::Absyn.ForIterator
     expect!(p, TK_IN, "after the for index")
     e = expression(p, p.metaModelica)
   end
-  return Absyn.ITERATOR(text(p, i), someOrNone(guard), someOrNone(e))
+  return Absyn.ITERATOR(text(p, i), someOf(Absyn.Exp, guard), someOf(Absyn.Exp, e))
 end
 
 """
@@ -2033,7 +2051,7 @@ function simpleExpr(p::Parser)::Absyn.Exp
   if la(p) == TK_COLON
     advance!(p)
     local e3::Absyn.Exp = logicalExpression(p)
-    return Absyn.RANGE(e1, SOME(e2), e3)
+    return Absyn.RANGE(e1, SOME{Absyn.Exp}(e2), e3)
   end
   return Absyn.RANGE(e1, nothing, e2)
 end
@@ -2288,9 +2306,9 @@ function primary(p::Parser)::Absyn.Exp
       push!(rows, expressionList(p))
     end
     expect!(p, TK_RBRACK, "at the end of the matrix")
-    local m::Any = NIL
+    local m::ImmutableList.List{ImmutableList.List{Absyn.Exp}} = NIL
     for i::Int in length(rows):-1:1
-      m = consU(rows[i], m)
+      m = consT(ImmutableList.List{Absyn.Exp}, rows[i], m)
     end
     return Absyn.MATRIX(m)
   elseif k == TK_LBRACE
@@ -2948,7 +2966,7 @@ function onecase(p::Parser)::Absyn.Case
   local th::Int = expect!(p, TK_THEN, "before the result of the case")
   local exp::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_SEMICOLON, "after the result of the case")
-  return Absyn.CASE(pat, someOrNone(guard), patInfo, orNil(es), body, exp, info(p, th), someOrNone(cmt), info(p, start))
+  return Absyn.CASE(pat, someOf(Absyn.Exp, guard), patInfo, orNil(es), body, exp, info(p, th), someOrNone(cmt), info(p, start))
 end
 
 #= Entry =#

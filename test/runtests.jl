@@ -2,6 +2,8 @@ using Test
 
 import OMParser
 
+include("dispatchCheck.jl")
+
 cd(@__DIR__) do
   @testset "Simple standalone modules" begin
     @test true == begin
@@ -126,6 +128,16 @@ cd(@__DIR__) do
     @test elements.tail.head == OMParser.Absyn.LEXER_COMMENT("// c\n")
     local eq = c.body.classParts.tail.head.contents.head
     @test fields(eq.info) == fields(OMParser.MetaModelica.SOURCEINFO("pos.mo", true, 4, 3, 4, 8, 0.0))
+  end
+
+  #= Every call in the parser resolved when compiled: fast, compiled ahead by the precompile
+     workload, and a requirement of `juliac --trim=safe`. =#
+  @testset "No dynamic dispatch" begin
+    local calls = dynamicCalls()
+    for (m, call) in calls
+      @info "Dynamic dispatch in $(m.name): $(call)"
+    end
+    @test isempty(calls)
   end
 
   #= Tests to see if the parser can handle the MM language.=#
