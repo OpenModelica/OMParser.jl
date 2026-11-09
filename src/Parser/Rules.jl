@@ -46,12 +46,12 @@ The array constructor's function name when it has iterators (`{e for i in r}`).
 const ARRAY_REDUCTION_NAME = "\$array"
 
 """
-    Parser
+    ParserState
 
 The state of one parse: the tokens, the dialect, the position of the next token (`LT(1)` of
 ANTLR) and the first comment not yet put into the tree (`omc_first_comment`).
 """
-mutable struct Parser
+mutable struct ParserState
   const ts::Tokens
   const kinds::Vector{TokenKind}
   const dialect::Dialect
@@ -62,8 +62,8 @@ mutable struct Parser
   firstComment::Int
 end
 
-function Parser(ts::Tokens, dialect::Dialect, readOnly::Bool)
-  return Parser(ts, ts.kind, dialect, dialect.metaModelica, ts.fileName, readOnly, 1, 1)
+function ParserState(ts::Tokens, dialect::Dialect, readOnly::Bool)
+  return ParserState(ts, ts.kind, dialect, dialect.metaModelica, ts.fileName, readOnly, 1, 1)
 end
 
 """
@@ -77,19 +77,19 @@ end
 
 #= Tokens =#
 
-@inline la(p::Parser)::TokenKind = @inbounds p.kinds[p.pos]
+@inline la(p::ParserState)::TokenKind = @inbounds p.kinds[p.pos]
 
-@inline function la(p::Parser, k::Int)::TokenKind
+@inline function la(p::ParserState, k::Int)::TokenKind
   local i::Int = p.pos + k - 1
   return i <= length(p.kinds) ? (@inbounds p.kinds[i]) : TK_EOF
 end
 
 """
-    advance!(p::Parser)::Int
+    advance!(p::ParserState)::Int
 
 Consume the next token and return its index.
 """
-@inline function advance!(p::Parser)::Int
+@inline function advance!(p::ParserState)::Int
   local i::Int = p.pos
   if i < length(p.kinds)
     p.pos = i + 1
@@ -98,34 +98,34 @@ Consume the next token and return its index.
 end
 
 """
-    expect!(p::Parser, k::TokenKind, context::String = "")::Int
+    expect!(p::ParserState, k::TokenKind, context::String = "")::Int
 
 Consume the next token, which must be of kind `k`, and return its index.
 """
-@inline function expect!(p::Parser, k::TokenKind, context::String = "")::Int
+@inline function expect!(p::ParserState, k::TokenKind, context::String = "")::Int
   la(p) == k || expectedError(p, tokenName(k), context)
   return advance!(p)
 end
 
 """
-    accept!(p::Parser, k::TokenKind)::Int
+    accept!(p::ParserState, k::TokenKind)::Int
 
 Consume the next token if it is of kind `k` and return its index, or return 0.
 """
-@inline function accept!(p::Parser, k::TokenKind)::Int
+@inline function accept!(p::ParserState, k::TokenKind)::Int
   la(p) == k || return 0
   return advance!(p)
 end
 
-@inline text(p::Parser, i::Int)::String = tokenText(p.ts, i)
+@inline text(p::ParserState, i::Int)::String = tokenText(p.ts, i)
 
 """
-    info(p::Parser, startToken::Int)::MetaModelica.SourceInfo
+    info(p::ParserState, startToken::Int)::MetaModelica.SourceInfo
 
 `PARSER_INFO(start)`: from token `startToken` to the next token. Columns are ANTLR's character
 positions plus one (plus two for a start on line 1), lines and columns of bytes.
 """
-function info(p::Parser, startToken::Int)::MetaModelica.SourceInfo
+function info(p::ParserState, startToken::Int)::MetaModelica.SourceInfo
   local ts::Tokens = p.ts
   local line1::Int = Int(@inbounds ts.line[startToken])
   local col1::Int = Int(@inbounds ts.rawColumn[startToken]) + (line1 == 1 ? 2 : 1)
@@ -137,11 +137,11 @@ end
 #= Errors =#
 
 """
-    describeToken(p::Parser, i::Int)::String
+    describeToken(p::ParserState, i::Int)::String
 
 Token `i` for an error message: `'model'`, `identifier 'x'`, `end of file`.
 """
-function describeToken(p::Parser, i::Int)::String
+function describeToken(p::ParserState, i::Int)::String
   local k::TokenKind = p.kinds[i]
   if k == TK_IDENT
     return "identifier '" * text(p, i) * "'"
@@ -157,11 +157,11 @@ function describeToken(p::Parser, i::Int)::String
 end
 
 """
-    errorAt(p::Parser, i::Int, message::String)
+    errorAt(p::ParserState, i::Int, message::String)
 
 Throw a `ParseError` at token `i`.
 """
-function errorAt(p::Parser, i::Int, message::String)
+function errorAt(p::ParserState, i::Int, message::String)
   local ts::Tokens = p.ts
   local pos::Int = Int(ts.start[i])
   local line::Int = Int(ts.line[i])
@@ -170,13 +170,13 @@ function errorAt(p::Parser, i::Int, message::String)
 end
 
 """
-    expectedError(p::Parser, expected::String, context::String = "")
+    expectedError(p::ParserState, expected::String, context::String = "")
 
 Throw "Expected <expected> [<context>] but found <next token>" at the next token. When the next
 token is on a later line than the end of the token before it (a `;` missing at the end of a
 line), the error is right after that token and names the next token's line.
 """
-function expectedError(p::Parser, expected::String, context::String = "")
+function expectedError(p::ParserState, expected::String, context::String = "")
   local where_::String = isempty(context) ? "" : " " * context
   local message::String = "Expected " * expected * where_ * " but found " * describeToken(p, p.pos)
   local ts::Tokens = p.ts
@@ -198,20 +198,20 @@ end
 #= Comments: the comment tokens before the next token become comment items. =#
 
 """
-    commentsBefore(p::Parser)::Int
+    commentsBefore(p::ParserState)::Int
 
 The number of comments before the next token.
 """
-@inline function commentsBefore(p::Parser)::Int
+@inline function commentsBefore(p::ParserState)::Int
   return searchsortedlast(p.ts.commentNext, Int32(p.pos))
 end
 
 """
-    elementComments!(p::Parser, ast::ImmutableList.List{Absyn.ElementItem})
+    elementComments!(p::ParserState, ast::ImmutableList.List{Absyn.ElementItem})
 
 `element_list`'s comment loop: cons the comments before the next token as `LEXER_COMMENT`s.
 """
-function elementComments!(p::Parser, ast::ImmutableList.List{Absyn.ElementItem})::ImmutableList.List{Absyn.ElementItem}
+function elementComments!(p::ParserState, ast::ImmutableList.List{Absyn.ElementItem})::ImmutableList.List{Absyn.ElementItem}
   local last::Int = commentsBefore(p)
   while p.firstComment <= last
     ast = consT(Absyn.ElementItem, Absyn.LEXER_COMMENT(commentText(p.ts, p.firstComment)), ast)
@@ -221,11 +221,11 @@ function elementComments!(p::Parser, ast::ImmutableList.List{Absyn.ElementItem})
 end
 
 """
-    equationComments!(p::Parser, ast::ImmutableList.List{Absyn.EquationItem})
+    equationComments!(p::ParserState, ast::ImmutableList.List{Absyn.EquationItem})
 
 `equation_annotation_list`'s comment loop (`EQUATIONITEMCOMMENT`).
 """
-function equationComments!(p::Parser, ast::ImmutableList.List{Absyn.EquationItem})::ImmutableList.List{Absyn.EquationItem}
+function equationComments!(p::ParserState, ast::ImmutableList.List{Absyn.EquationItem})::ImmutableList.List{Absyn.EquationItem}
   local last::Int = commentsBefore(p)
   while p.firstComment <= last
     ast = consT(Absyn.EquationItem, Absyn.EQUATIONITEMCOMMENT(commentText(p.ts, p.firstComment)), ast)
@@ -235,11 +235,11 @@ function equationComments!(p::Parser, ast::ImmutableList.List{Absyn.EquationItem
 end
 
 """
-    algorithmComments!(p::Parser, ast::ImmutableList.List{Absyn.AlgorithmItem})
+    algorithmComments!(p::ParserState, ast::ImmutableList.List{Absyn.AlgorithmItem})
 
 `algorithm_annotation_list`'s comment loop (`ALGORITHMITEMCOMMENT`).
 """
-function algorithmComments!(p::Parser, ast::ImmutableList.List{Absyn.AlgorithmItem})::ImmutableList.List{Absyn.AlgorithmItem}
+function algorithmComments!(p::ParserState, ast::ImmutableList.List{Absyn.AlgorithmItem})::ImmutableList.List{Absyn.AlgorithmItem}
   local last::Int = commentsBefore(p)
   while p.firstComment <= last
     ast = consT(Absyn.AlgorithmItem, Absyn.ALGORITHMITEMCOMMENT(commentText(p.ts, p.firstComment)), ast)
@@ -346,11 +346,11 @@ when `T` is abstract.
 #= stored_definition, within =#
 
 """
-    storedDefinition(p::Parser)::Absyn.Program
+    storedDefinition(p::ParserState)::Absyn.Program
 
 `stored_definition`: `BOM? (within_clause ';')? class_definition_list? EOF`.
 """
-function storedDefinition(p::Parser)::Absyn.Program
+function storedDefinition(p::ParserState)::Absyn.Program
   accept!(p, TK_BOM)
   local within_::Union{Nothing, Absyn.Within} = nothing
   if la(p) == TK_WITHIN
@@ -367,11 +367,11 @@ function storedDefinition(p::Parser)::Absyn.Program
 end
 
 """
-    withinClause(p::Parser)::Absyn.Within
+    withinClause(p::ParserState)::Absyn.Within
 
 `within_clause`: `within name_path?`.
 """
-function withinClause(p::Parser)::Absyn.Within
+function withinClause(p::ParserState)::Absyn.Within
   expect!(p, TK_WITHIN)
   local k::TokenKind = la(p)
   if k == TK_DOT || k == TK_IDENT || k == TK_CODE
@@ -381,11 +381,11 @@ function withinClause(p::Parser)::Absyn.Within
 end
 
 """
-    classDefinitionList(p::Parser)::ImmutableList.List{Absyn.Class}
+    classDefinitionList(p::ParserState)::ImmutableList.List{Absyn.Class}
 
 `class_definition_list`: `(final? class_definition ';')+`.
 """
-function classDefinitionList(p::Parser)::ImmutableList.List{Absyn.Class}
+function classDefinitionList(p::ParserState)::ImmutableList.List{Absyn.Class}
   local classes::Vector{Absyn.Class} = Absyn.Class[]
   while true
     local isFinal::Bool = accept!(p, TK_FINAL) != 0
@@ -405,11 +405,11 @@ end
 #= Classes =#
 
 """
-    classDefinition(p::Parser, isFinal::Bool)::Absyn.Class
+    classDefinition(p::ParserState, isFinal::Bool)::Absyn.Class
 
 `class_definition`: `encapsulated? partial? class_type class_specifier`.
 """
-function classDefinition(p::Parser, isFinal::Bool)::Absyn.Class
+function classDefinition(p::ParserState, isFinal::Bool)::Absyn.Class
   local start::Int = p.pos
   local e::Bool = accept!(p, TK_ENCAPSULATED) != 0
   local partial::Bool = accept!(p, TK_PARTIAL) != 0
@@ -419,11 +419,11 @@ function classDefinition(p::Parser, isFinal::Bool)::Absyn.Class
 end
 
 """
-    classType(p::Parser)::Absyn.Restriction
+    classType(p::ParserState)::Absyn.Restriction
 
 `class_type`: the restriction keyword(s).
 """
-function classType(p::Parser)::Absyn.Restriction
+function classType(p::ParserState)::Absyn.Restriction
   local k::TokenKind = la(p)
   if k == TK_CLASS
     advance!(p); return Absyn.R_CLASS()
@@ -466,11 +466,11 @@ function classType(p::Parser)::Absyn.Restriction
 end
 
 """
-    identifier(p::Parser)::String
+    identifier(p::ParserState)::String
 
 `identifier`: a class name (an identifier, or `der`, `\$Code`, `equality`, `initial`).
 """
-function identifier(p::Parser)::String
+function identifier(p::ParserState)::String
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_DER || k == TK_CODE || k == TK_EQUALITY || k == TK_INITIAL) ||
     expectedError(p, "a class name")
@@ -478,11 +478,11 @@ function identifier(p::Parser)::String
 end
 
 """
-    classSpecifier(p::Parser)::Tuple{Absyn.ClassDef, String}
+    classSpecifier(p::ParserState)::Tuple{Absyn.ClassDef, String}
 
 `class_specifier`: the class name and its body, or `extends name ... end name`.
 """
-function classSpecifier(p::Parser)::Tuple{Absyn.ClassDef, String}
+function classSpecifier(p::ParserState)::Tuple{Absyn.ClassDef, String}
   local start::Int = p.pos
   if la(p) == TK_EXTENDS
     advance!(p)
@@ -504,12 +504,12 @@ function classSpecifier(p::Parser)::Tuple{Absyn.ClassDef, String}
 end
 
 """
-    classSpecifier2(p::Parser, name::String)::Tuple{Absyn.ClassDef, Union{Nothing, String}}
+    classSpecifier2(p::ParserState, name::String)::Tuple{Absyn.ClassDef, Union{Nothing, String}}
 
 `class_specifier2`: the body after the class name (parts, a short class definition, an
 enumeration, `der`, `\$overload`, `subtypeof`) and the name after `end`, if any.
 """
-function classSpecifier2(p::Parser, name::String)::Tuple{Absyn.ClassDef, Union{Nothing, String}}
+function classSpecifier2(p::ParserState, name::String)::Tuple{Absyn.ClassDef, Union{Nothing, String}}
   local start::Int = p.pos
   local k::TokenKind = la(p)
   if k == TK_EQUALS
@@ -561,11 +561,11 @@ function classSpecifier2(p::Parser, name::String)::Tuple{Absyn.ClassDef, Union{N
 end
 
 """
-    pder(p::Parser)::Absyn.ClassDef
+    pder(p::ParserState)::Absyn.ClassDef
 
 `pder`: `der(name, idents) comment`.
 """
-function pder(p::Parser)::Absyn.ClassDef
+function pder(p::ParserState)::Absyn.ClassDef
   expect!(p, TK_DER)
   expect!(p, TK_LPAR)
   local func::Absyn.Path = namePath(p)
@@ -577,11 +577,11 @@ function pder(p::Parser)::Absyn.ClassDef
 end
 
 """
-    identList(p::Parser)::ImmutableList.List{String}
+    identList(p::ParserState)::ImmutableList.List{String}
 
 `ident_list`: `IDENT (',' IDENT)*` (an untyped cons list).
 """
-function identList(p::Parser)::ImmutableList.List{String}
+function identList(p::ParserState)::ImmutableList.List{String}
   local names::Vector{String} = String[]
   push!(names, text(p, expect!(p, TK_IDENT)))
   while accept!(p, TK_COMMA) != 0
@@ -595,11 +595,11 @@ function identList(p::Parser)::ImmutableList.List{String}
 end
 
 """
-    overloading(p::Parser)::Absyn.ClassDef
+    overloading(p::ParserState)::Absyn.ClassDef
 
 `overloading`: `\$overload(names) comment`.
 """
-function overloading(p::Parser)::Absyn.ClassDef
+function overloading(p::ParserState)::Absyn.ClassDef
   expect!(p, TK_OVERLOAD)
   expect!(p, TK_LPAR)
   local nl::ImmutableList.List{Absyn.Path} = nameList(p)
@@ -609,21 +609,21 @@ function overloading(p::Parser)::Absyn.ClassDef
 end
 
 """
-    basePrefix(p::Parser)::Absyn.ElementAttributes
+    basePrefix(p::ParserState)::Absyn.ElementAttributes
 
 `base_prefix`: the type prefix as an `ATTR` without dimensions.
 """
-function basePrefix(p::Parser)::Absyn.ElementAttributes
+function basePrefix(p::ParserState)::Absyn.ElementAttributes
   local tp::TypePrefix = typePrefix(p)
   return Absyn.ATTR(tp.flow, tp.stream, tp.parallelism, tp.variability, tp.direction, tp.field, NIL, tp.isMode)
 end
 
 """
-    nameList(p::Parser)::ImmutableList.List{Absyn.Path}
+    nameList(p::ParserState)::ImmutableList.List{Absyn.Path}
 
 `name_list`: `name_path (',' name_path)*`.
 """
-function nameList(p::Parser)::ImmutableList.List{Absyn.Path}
+function nameList(p::ParserState)::ImmutableList.List{Absyn.Path}
   local names::Vector{Absyn.Path} = Absyn.Path[namePath(p)]
   while accept!(p, TK_COMMA) != 0
     push!(names, namePath(p))
@@ -636,11 +636,11 @@ function nameList(p::Parser)::ImmutableList.List{Absyn.Path}
 end
 
 """
-    enumeration(p::Parser)::Absyn.ClassDef
+    enumeration(p::ParserState)::Absyn.ClassDef
 
 `enumeration`: `enumeration '(' (enum_list | ':') ')' comment`.
 """
-function enumeration(p::Parser)::Absyn.ClassDef
+function enumeration(p::ParserState)::Absyn.ClassDef
   expect!(p, TK_ENUMERATION)
   expect!(p, TK_LPAR, "after 'enumeration'")
   if accept!(p, TK_COLON) != 0
@@ -665,12 +665,12 @@ function enumeration(p::Parser)::Absyn.ClassDef
 end
 
 """
-    composition(p::Parser)::Tuple{ImmutableList.List{Absyn.ClassPart}, ImmutableList.List{Absyn.Annotation}}
+    composition(p::ParserState)::Tuple{ImmutableList.List{Absyn.ClassPart}, ImmutableList.List{Absyn.Annotation}}
 
 `composition`: the public element list, the other sections, the external clause and the
 annotation after it. Returns the class parts and the (not yet reversed) annotation list.
 """
-function composition(p::Parser)::Tuple{ImmutableList.List{Absyn.ClassPart}, ImmutableList.List{Absyn.Annotation}}
+function composition(p::ParserState)::Tuple{ImmutableList.List{Absyn.ClassPart}, ImmutableList.List{Absyn.Annotation}}
   local ann::AnnotationList = AnnotationList(NIL)
   local el::ImmutableList.List{Absyn.ElementItem} = elementList(p, ann)
   local els::ImmutableList.List{Absyn.ClassPart} = composition2(p, ann)
@@ -685,12 +685,12 @@ function composition(p::Parser)::Tuple{ImmutableList.List{Absyn.ClassPart}, Immu
 end
 
 """
-    composition2(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.ClassPart}
+    composition2(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.ClassPart}
 
 `composition2`: the sections (`public`, `protected`, `equation`, `algorithm`, their `initial`
 forms, `constraint`) and the external clause.
 """
-function composition2(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.ClassPart}
+function composition2(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.ClassPart}
   local parts::Vector{Absyn.ClassPart} = Absyn.ClassPart[]
   local tail::ImmutableList.List{Absyn.ClassPart} = NIL
   while true
@@ -731,11 +731,11 @@ function composition2(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.
 end
 
 """
-    externalClause(p::Parser)::ImmutableList.List{Absyn.ClassPart}
+    externalClause(p::ParserState)::ImmutableList.List{Absyn.ClassPart}
 
 `external_clause`: `external language? ((cref '=')? IDENT '(' expressions? ')')? annotation? ';'`.
 """
-function externalClause(p::Parser)::ImmutableList.List{Absyn.ClassPart}
+function externalClause(p::ParserState)::ImmutableList.List{Absyn.ClassPart}
   expect!(p, TK_EXTERNAL)
   local lang::Union{Nothing, String} = nothing
   if la(p) == TK_STRING
@@ -766,12 +766,12 @@ function externalClause(p::Parser)::ImmutableList.List{Absyn.ClassPart}
 end
 
 """
-    elementList(p::Parser, ann::Union{Nothing, AnnotationList})::ImmutableList.List{Absyn.ElementItem}
+    elementList(p::ParserState, ann::Union{Nothing, AnnotationList})::ImmutableList.List{Absyn.ElementItem}
 
 `element_list`: `((element | annotation) ';')*` with the comments as `LEXER_COMMENT` items.
 Annotations go to `ann` (not allowed when it is `nothing`, the local declarations of a match).
 """
-function elementList(p::Parser, ann::Union{Nothing, AnnotationList})::ImmutableList.List{Absyn.ElementItem}
+function elementList(p::ParserState, ann::Union{Nothing, AnnotationList})::ImmutableList.List{Absyn.ElementItem}
   local ast::ImmutableList.List{Absyn.ElementItem} = elementComments!(p, NIL)
   while true
     local k::TokenKind = la(p)
@@ -795,12 +795,12 @@ function elementList(p::Parser, ann::Union{Nothing, AnnotationList})::ImmutableL
 end
 
 """
-    element(p::Parser)::Absyn.Element
+    element(p::ParserState)::Absyn.Element
 
 `element`: an import, extends or defineunit clause, or a class definition or component clause
 with its prefixes (`redeclare final inner outer replaceable`).
 """
-function element(p::Parser)::Absyn.Element
+function element(p::ParserState)::Absyn.Element
   local start::Int = p.pos
   local k::TokenKind = la(p)
   if k == TK_IMPORT
@@ -844,11 +844,11 @@ function element(p::Parser)::Absyn.Element
 end
 
 """
-    importClause(p::Parser)::Absyn.ElementSpec
+    importClause(p::ParserState)::Absyn.ElementSpec
 
 `import_clause`: `import (IDENT '=' name | name | name.* | name.{...}) comment`.
 """
-function importClause(p::Parser)::Absyn.ElementSpec
+function importClause(p::ParserState)::Absyn.ElementSpec
   local im::Int = expect!(p, TK_IMPORT)
   local imp::Absyn.Import
   local k::TokenKind = la(p)
@@ -865,11 +865,11 @@ function importClause(p::Parser)::Absyn.ElementSpec
 end
 
 """
-    defineunitClause(p::Parser)::Absyn.Element
+    defineunitClause(p::ParserState)::Absyn.Element
 
 `defineunit_clause`: `defineunit IDENT ('(' named_arguments ')')?`.
 """
-function defineunitClause(p::Parser)::Absyn.Element
+function defineunitClause(p::ParserState)::Absyn.Element
   expect!(p, TK_DEFINEUNIT)
   local id::Int = expect!(p, TK_IDENT, "after 'defineunit'")
   local na::Union{Nothing, ImmutableList.List{Absyn.NamedArg}} = nothing
@@ -881,11 +881,11 @@ function defineunitClause(p::Parser)::Absyn.Element
 end
 
 """
-    extendsClause(p::Parser)::Absyn.ElementSpec
+    extendsClause(p::ParserState)::Absyn.ElementSpec
 
 `extends_clause`: `extends name class_or_inheritance_modification? annotation?`.
 """
-function extendsClause(p::Parser)::Absyn.ElementSpec
+function extendsClause(p::ParserState)::Absyn.ElementSpec
   expect!(p, TK_EXTENDS)
   local path::Absyn.Path = namePath(p)
   local mod::Union{Nothing, ImmutableList.List{Absyn.ElementArg}} = la(p) == TK_LPAR ? classModification(p, true) : nothing
@@ -894,11 +894,11 @@ function extendsClause(p::Parser)::Absyn.ElementSpec
 end
 
 """
-    constrainingClauseComment(p::Parser)::Absyn.ConstrainClass
+    constrainingClauseComment(p::ParserState)::Absyn.ConstrainClass
 
 `constraining_clause_comment`: `(extends | constrainedby) name class_modification? comment`.
 """
-function constrainingClauseComment(p::Parser)::Absyn.ConstrainClass
+function constrainingClauseComment(p::ParserState)::Absyn.ConstrainClass
   advance!(p)
   local np::Absyn.Path = namePath(p)
   local mod::Union{Nothing, ImmutableList.List{Absyn.ElementArg}} = la(p) == TK_LPAR ? classModification(p) : nothing
@@ -923,12 +923,12 @@ struct TypePrefix
 end
 
 """
-    typePrefix(p::Parser)::TypePrefix
+    typePrefix(p::ParserState)::TypePrefix
 
 `type_prefix`: `(flow|stream)? structuralmode? (parlocal|parglobal)? (discrete|parameter|constant)?
 input? output? (field|nonfield)?`.
 """
-function typePrefix(p::Parser)::TypePrefix
+function typePrefix(p::ParserState)::TypePrefix
   local fl::Bool = accept!(p, TK_FLOW) != 0
   local st::Bool = !fl && accept!(p, TK_STREAM) != 0
   local mo::Bool = accept!(p, TK_MODE) != 0
@@ -966,11 +966,11 @@ struct TypeSpecifierParts
 end
 
 """
-    typeSpecifierParts(p::Parser)::TypeSpecifierParts
+    typeSpecifierParts(p::ParserState)::TypeSpecifierParts
 
 `type_specifier` without building the `TypeSpec`: `name ('<' type_specifier_list '>')? array_subscripts?`.
 """
-function typeSpecifierParts(p::Parser)::TypeSpecifierParts
+function typeSpecifierParts(p::ParserState)::TypeSpecifierParts
   local start::Int = p.pos
   local np::Absyn.Path = namePath(p)
   local ts::Union{Nothing, ImmutableList.List{Absyn.TypeSpec}} = nothing
@@ -995,11 +995,11 @@ function typeSpecifierParts(p::Parser)::TypeSpecifierParts
 end
 
 """
-    typeSpecifier(p::Parser)::Absyn.TypeSpec
+    typeSpecifier(p::ParserState)::Absyn.TypeSpec
 
 `type_specifier`: `TPATH` or (MetaModelica) `TCOMPLEX`.
 """
-function typeSpecifier(p::Parser)::Absyn.TypeSpec
+function typeSpecifier(p::ParserState)::Absyn.TypeSpec
   local tsp::TypeSpecifierParts = typeSpecifierParts(p)
   local args::Union{Nothing, ImmutableList.List{Absyn.TypeSpec}} = tsp.typeArgs
   if args !== nothing
@@ -1009,12 +1009,12 @@ function typeSpecifier(p::Parser)::Absyn.TypeSpec
 end
 
 """
-    componentClause(p::Parser)::Absyn.ElementSpec
+    componentClause(p::ParserState)::Absyn.ElementSpec
 
 `component_clause`: `type_prefix type_specifier component_list`. The dimensions after the type
 name move to the attributes (the type specifier keeps none).
 """
-function componentClause(p::Parser)::Absyn.ElementSpec
+function componentClause(p::ParserState)::Absyn.ElementSpec
   local tp::TypePrefix = typePrefix(p)
   local tsp::TypeSpecifierParts = typeSpecifierParts(p)
   local clst::ImmutableList.List{Absyn.ComponentItem} = componentList(p)
@@ -1027,11 +1027,11 @@ function componentClause(p::Parser)::Absyn.ElementSpec
 end
 
 """
-    componentList(p::Parser)::ImmutableList.List{Absyn.ComponentItem}
+    componentList(p::ParserState)::ImmutableList.List{Absyn.ComponentItem}
 
 `component_list`: `component_declaration (',' component_declaration)*`.
 """
-function componentList(p::Parser)::ImmutableList.List{Absyn.ComponentItem}
+function componentList(p::ParserState)::ImmutableList.List{Absyn.ComponentItem}
   local items::Vector{Absyn.ComponentItem} = Absyn.ComponentItem[componentDeclaration(p)]
   while accept!(p, TK_COMMA) != 0
     push!(items, componentDeclaration(p))
@@ -1044,11 +1044,11 @@ function componentList(p::Parser)::ImmutableList.List{Absyn.ComponentItem}
 end
 
 """
-    componentDeclaration(p::Parser)::Absyn.ComponentItem
+    componentDeclaration(p::ParserState)::Absyn.ComponentItem
 
 `component_declaration`: `declaration (if expression)? comment`.
 """
-function componentDeclaration(p::Parser)::Absyn.ComponentItem
+function componentDeclaration(p::ParserState)::Absyn.ComponentItem
   local decl::Absyn.Component = declaration(p)
   local cond::Union{Nothing, Absyn.Exp} = nothing
   if accept!(p, TK_IF) != 0
@@ -1059,11 +1059,11 @@ function componentDeclaration(p::Parser)::Absyn.ComponentItem
 end
 
 """
-    declaration(p::Parser)::Absyn.Component
+    declaration(p::ParserState)::Absyn.Component
 
 `declaration`: `(IDENT | operator) array_subscripts? modification?`.
 """
-function declaration(p::Parser)::Absyn.Component
+function declaration(p::ParserState)::Absyn.Component
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_OPERATOR) || expectedError(p, "a component name")
   local id::String = text(p, advance!(p))
@@ -1079,12 +1079,12 @@ end
 #= Modifications =#
 
 """
-    modification(p::Parser)::Absyn.Modification
+    modification(p::ParserState)::Absyn.Modification
 
 `modification`: `class_modification ('=' expr)? | '=' expr | ':=' expr`, where `expr` may be
 `break`.
 """
-function modification(p::Parser)::Absyn.Modification
+function modification(p::ParserState)::Absyn.Modification
   local cm::Union{Nothing, ImmutableList.List{Absyn.ElementArg}} = nothing
   local eq::Int = 0
   local e::Union{Nothing, Absyn.Exp} = nothing
@@ -1105,11 +1105,11 @@ function modification(p::Parser)::Absyn.Modification
 end
 
 """
-    modificationExpression(p::Parser)::Absyn.Exp
+    modificationExpression(p::ParserState)::Absyn.Exp
 
 `modification_expression`: an expression or `break`.
 """
-function modificationExpression(p::Parser)::Absyn.Exp
+function modificationExpression(p::ParserState)::Absyn.Exp
   if accept!(p, TK_BREAK) != 0
     return Absyn.BREAK()
   end
@@ -1117,12 +1117,12 @@ function modificationExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    classModification(p::Parser, canHaveBreak::Bool = false)::ImmutableList.List{Absyn.ElementArg}
+    classModification(p::ParserState, canHaveBreak::Bool = false)::ImmutableList.List{Absyn.ElementArg}
 
 `class_modification` (and `class_or_inheritance_modification` when `canHaveBreak`):
 `'(' argument_list? ')'`.
 """
-function classModification(p::Parser, canHaveBreak::Bool = false)::ImmutableList.List{Absyn.ElementArg}
+function classModification(p::ParserState, canHaveBreak::Bool = false)::ImmutableList.List{Absyn.ElementArg}
   expect!(p, TK_LPAR)
   local ast::ImmutableList.List{Absyn.ElementArg} = NIL
   if la(p) != TK_RPAR
@@ -1133,11 +1133,11 @@ function classModification(p::Parser, canHaveBreak::Bool = false)::ImmutableList
 end
 
 """
-    argumentList(p::Parser, canHaveBreak::Bool)::ImmutableList.List{Absyn.ElementArg}
+    argumentList(p::ParserState, canHaveBreak::Bool)::ImmutableList.List{Absyn.ElementArg}
 
 `argument_list`: `(argument | inheritance_modification) (',' ...)*`.
 """
-function argumentList(p::Parser, canHaveBreak::Bool)::ImmutableList.List{Absyn.ElementArg}
+function argumentList(p::ParserState, canHaveBreak::Bool)::ImmutableList.List{Absyn.ElementArg}
   local args::Vector{Absyn.ElementArg} = Absyn.ElementArg[]
   while true
     if la(p) == TK_BREAK
@@ -1156,12 +1156,12 @@ function argumentList(p::Parser, canHaveBreak::Bool)::ImmutableList.List{Absyn.E
 end
 
 """
-    inheritanceModification(p::Parser)::Absyn.ElementArg
+    inheritanceModification(p::ParserState)::Absyn.ElementArg
 
 `inheritance_modification`: `break connect(a, b)` or `break IDENT` (stored as
 `connect(break, IDENT)`).
 """
-function inheritanceModification(p::Parser)::Absyn.ElementArg
+function inheritanceModification(p::ParserState)::Absyn.ElementArg
   local start::Int = expect!(p, TK_BREAK)
   if la(p) == TK_CONNECT
     local c::Absyn.Equation = connectClause(p)
@@ -1173,11 +1173,11 @@ function inheritanceModification(p::Parser)::Absyn.ElementArg
 end
 
 """
-    argument(p::Parser)::Absyn.ElementArg
+    argument(p::ParserState)::Absyn.ElementArg
 
 `argument`: `element_modification_or_replaceable | element_redeclaration`.
 """
-function argument(p::Parser)::Absyn.ElementArg
+function argument(p::ParserState)::Absyn.ElementArg
   if la(p) == TK_REDECLARE
     return elementRedeclaration(p)
   end
@@ -1190,11 +1190,11 @@ function argument(p::Parser)::Absyn.ElementArg
 end
 
 """
-    elementModification(p::Parser, each::Absyn.Each, isFinal::Bool)::Absyn.ElementArg
+    elementModification(p::ParserState, each::Absyn.Each, isFinal::Bool)::Absyn.ElementArg
 
 `element_modification`: `name_path2 modification? string_comment` (`name[` is an error).
 """
-function elementModification(p::Parser, each::Absyn.Each, isFinal::Bool)::Absyn.ElementArg
+function elementModification(p::ParserState, each::Absyn.Each, isFinal::Bool)::Absyn.ElementArg
   local start::Int = p.pos
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_CODE) || expectedError(p, "a name to modify")
@@ -1212,12 +1212,12 @@ function elementModification(p::Parser, each::Absyn.Each, isFinal::Bool)::Absyn.
 end
 
 """
-    elementRedeclaration(p::Parser)::Absyn.ElementArg
+    elementRedeclaration(p::ParserState)::Absyn.ElementArg
 
 `element_redeclaration`: `redeclare each? final? (class_definition | component_clause1 |
 element_replaceable)`.
 """
-function elementRedeclaration(p::Parser)::Absyn.ElementArg
+function elementRedeclaration(p::ParserState)::Absyn.ElementArg
   local start::Int = expect!(p, TK_REDECLARE)
   local e::Bool = accept!(p, TK_EACH) != 0
   local f::Bool = accept!(p, TK_FINAL) != 0
@@ -1233,11 +1233,11 @@ function elementRedeclaration(p::Parser)::Absyn.ElementArg
 end
 
 """
-    elementReplaceable(p::Parser, each::Bool, isFinal::Bool, redeclare::Bool)::Absyn.ElementArg
+    elementReplaceable(p::ParserState, each::Bool, isFinal::Bool, redeclare::Bool)::Absyn.ElementArg
 
 `element_replaceable`: `replaceable (class_definition | component_clause1) constraining_clause_comment?`.
 """
-function elementReplaceable(p::Parser, each::Bool, isFinal::Bool, redeclare::Bool)::Absyn.ElementArg
+function elementReplaceable(p::ParserState, each::Bool, isFinal::Bool, redeclare::Bool)::Absyn.ElementArg
   local start::Int = expect!(p, TK_REPLACEABLE)
   local spec::Absyn.ElementSpec = if startsClassDefinition(la(p))
     Absyn.CLASSDEF(true, classDefinition(p, isFinal))
@@ -1253,12 +1253,12 @@ function elementReplaceable(p::Parser, each::Bool, isFinal::Bool, redeclare::Boo
 end
 
 """
-    componentClause1(p::Parser)::Absyn.ElementSpec
+    componentClause1(p::ParserState)::Absyn.ElementSpec
 
 `component_clause1`: `base_prefix type_specifier component_declaration1` (the dimensions stay in
 the type specifier).
 """
-function componentClause1(p::Parser)::Absyn.ElementSpec
+function componentClause1(p::ParserState)::Absyn.ElementSpec
   local attr::Absyn.ElementAttributes = basePrefix(p)
   local ts::Absyn.TypeSpec = typeSpecifier(p)
   local decl::Absyn.Component = declaration(p)
@@ -1270,12 +1270,12 @@ end
 #= Equation and algorithm sections =#
 
 """
-    equationAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.EquationItem}
+    equationAnnotationList(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.EquationItem}
 
 `equation_annotation_list`: `((equation | annotation) ';')*` up to the next section, with the
 comments as `EQUATIONITEMCOMMENT` items.
 """
-function equationAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.EquationItem}
+function equationAnnotationList(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.EquationItem}
   local ast::ImmutableList.List{Absyn.EquationItem} = equationComments!(p, NIL)
   while true
     local k::TokenKind = la(p)
@@ -1302,11 +1302,11 @@ function equationAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList.L
 end
 
 """
-    constraintAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.Exp}
+    constraintAnnotationList(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.Exp}
 
 `constraint_annotation_list` (Optimica): `((constraint | annotation) ';')*`.
 """
-function constraintAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList.List{Absyn.Exp}
+function constraintAnnotationList(p::ParserState, ann::AnnotationList)::ImmutableList.List{Absyn.Exp}
   local items::Vector{Any} = Any[]
   while true
     local k::TokenKind = la(p)
@@ -1333,12 +1333,12 @@ function constraintAnnotationList(p::Parser, ann::AnnotationList)::ImmutableList
 end
 
 """
-    algorithmAnnotationList(p::Parser, ann::Union{Nothing, AnnotationList}, matchCase::Bool)::ImmutableList.List{Absyn.AlgorithmItem}
+    algorithmAnnotationList(p::ParserState, ann::Union{Nothing, AnnotationList}, matchCase::Bool)::ImmutableList.List{Absyn.AlgorithmItem}
 
 `algorithm_annotation_list`: `((algorithm | annotation) ';')*` up to the next section (`then`
 in a match case), with the comments as `ALGORITHMITEMCOMMENT` items.
 """
-function algorithmAnnotationList(p::Parser, ann::Union{Nothing, AnnotationList}, matchCase::Bool)::ImmutableList.List{Absyn.AlgorithmItem}
+function algorithmAnnotationList(p::ParserState, ann::Union{Nothing, AnnotationList}, matchCase::Bool)::ImmutableList.List{Absyn.AlgorithmItem}
   local start::Int = p.pos
   local ast::ImmutableList.List{Absyn.AlgorithmItem} = algorithmComments!(p, NIL)
   while true
@@ -1371,11 +1371,11 @@ function algorithmAnnotationList(p::Parser, ann::Union{Nothing, AnnotationList},
 end
 
 """
-    equation(p::Parser)::Absyn.EquationItem
+    equation(p::ParserState)::Absyn.EquationItem
 
 `equation`: one equation and its comment.
 """
-function equation(p::Parser)::Absyn.EquationItem
+function equation(p::ParserState)::Absyn.EquationItem
   local start::Int = p.pos
   local k::TokenKind = la(p)
   local e::Absyn.Equation
@@ -1414,11 +1414,11 @@ function equation(p::Parser)::Absyn.EquationItem
 end
 
 """
-    constraint(p::Parser)
+    constraint(p::ParserState)
 
 `constraint` (Optimica): an expression or a statement.
 """
-function constraint(p::Parser)::Any
+function constraint(p::ParserState)::Any
   local k::TokenKind = la(p)
   local a::Any
   if k == TK_IF
@@ -1445,11 +1445,11 @@ function constraint(p::Parser)::Any
 end
 
 """
-    algorithm(p::Parser)::Absyn.AlgorithmItem
+    algorithm(p::ParserState)::Absyn.AlgorithmItem
 
 `algorithm`: one statement and its comment.
 """
-function algorithm(p::Parser)::Absyn.AlgorithmItem
+function algorithm(p::ParserState)::Absyn.AlgorithmItem
   local start::Int = p.pos
   local k::TokenKind = la(p)
   local a::Absyn.Algorithm
@@ -1494,11 +1494,11 @@ function algorithm(p::Parser)::Absyn.AlgorithmItem
 end
 
 """
-    assignClauseA(p::Parser)::Absyn.Algorithm
+    assignClauseA(p::ParserState)::Absyn.Algorithm
 
 `assign_clause_a`: `simple_expression (':=' expression)?` (a call when alone).
 """
-function assignClauseA(p::Parser)::Absyn.Algorithm
+function assignClauseA(p::ParserState)::Absyn.Algorithm
   local start::Int = p.pos
   local e1::Absyn.Exp = simpleExpression(p)
   local k::TokenKind = la(p)
@@ -1521,7 +1521,8 @@ end
 """
     isDerCref(exp::Absyn.Exp)::Bool
 
-`der(cref)`. (The 0.2 C parser calls `OMParser.isDerCref` too: `test/Differential` loads it.)
+`der(cref)`. (The 0.2 C parser calls `OMParser.isDerCref` on the records of the Absyn package:
+`test/Differential/absynDiff.jl` defines it for them.)
 """
 function isDerCref(exp::Absyn.Exp)::Bool
   exp isa Absyn.CALL || return false
@@ -1536,12 +1537,12 @@ function isDerCref(exp::Absyn.Exp)::Bool
 end
 
 """
-    equalityOrNoretcallEquation(p::Parser)::Absyn.Equation
+    equalityOrNoretcallEquation(p::ParserState)::Absyn.Equation
 
 `equality_or_noretcall_equation`: `simple_expression ('=' expression (indomain cref)?)?` (a call
 when alone).
 """
-function equalityOrNoretcallEquation(p::Parser)::Absyn.Equation
+function equalityOrNoretcallEquation(p::ParserState)::Absyn.Equation
   local start::Int = p.pos
   local e1::Absyn.Exp = simpleExpression(p)
   local k::TokenKind = la(p)
@@ -1565,20 +1566,20 @@ function equalityOrNoretcallEquation(p::Parser)::Absyn.Equation
 end
 
 """
-    endIfError(p::Parser, hasElse::Bool)
+    endIfError(p::ParserState, hasElse::Bool)
 
 The error of an `if` closed by another `end` than `end if`.
 """
-function endIfError(p::Parser, hasElse::Bool)
+function endIfError(p::ParserState, hasElse::Bool)
   errorAt(p, p.pos, hasElse ? "Expected 'end if'; did you use a nested 'else if' instead of 'elseif'?" : "Expected 'end if'")
 end
 
 """
-    conditionalEquationE(p::Parser)::Absyn.Equation
+    conditionalEquationE(p::ParserState)::Absyn.Equation
 
 `conditional_equation_e`: `if e then eqs (elseif e then eqs)* (else eqs)? end if`.
 """
-function conditionalEquationE(p::Parser)::Absyn.Equation
+function conditionalEquationE(p::ParserState)::Absyn.Equation
   expect!(p, TK_IF)
   local e::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_THEN, "after the if condition")
@@ -1619,11 +1620,11 @@ function elseIfList(branches::Vector{E})::ImmutableList.List{E} where {E}
 end
 
 """
-    conditionalEquationA(p::Parser)::Absyn.Algorithm
+    conditionalEquationA(p::ParserState)::Absyn.Algorithm
 
 `conditional_equation_a`: the `if` statement.
 """
-function conditionalEquationA(p::Parser)::Absyn.Algorithm
+function conditionalEquationA(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_IF)
   local e::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_THEN, "after the if condition")
@@ -1649,11 +1650,11 @@ function conditionalEquationA(p::Parser)::Absyn.Algorithm
 end
 
 """
-    forClauseE(p::Parser)::Absyn.Equation
+    forClauseE(p::ParserState)::Absyn.Equation
 
 `for_clause_e`: `for indices loop eqs end for`.
 """
-function forClauseE(p::Parser)::Absyn.Equation
+function forClauseE(p::ParserState)::Absyn.Equation
   expect!(p, TK_FOR)
   local is::ImmutableList.List{Absyn.ForIterator} = forIndices(p)
   expect!(p, TK_LOOP, "after the for indices")
@@ -1663,11 +1664,11 @@ function forClauseE(p::Parser)::Absyn.Equation
 end
 
 """
-    forClauseA(p::Parser)::Absyn.Algorithm
+    forClauseA(p::ParserState)::Absyn.Algorithm
 
 `for_clause_a`: the `for` statement.
 """
-function forClauseA(p::Parser)::Absyn.Algorithm
+function forClauseA(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_FOR)
   local is::ImmutableList.List{Absyn.ForIterator} = forIndices(p)
   expect!(p, TK_LOOP, "after the for indices")
@@ -1677,11 +1678,11 @@ function forClauseA(p::Parser)::Absyn.Algorithm
 end
 
 """
-    parforClauseE(p::Parser)::Absyn.Equation
+    parforClauseE(p::ParserState)::Absyn.Equation
 
 `parfor_clause_e` (an `EQ_FOR`).
 """
-function parforClauseE(p::Parser)::Absyn.Equation
+function parforClauseE(p::ParserState)::Absyn.Equation
   expect!(p, TK_PARFOR)
   local is::ImmutableList.List{Absyn.ForIterator} = forIndices(p)
   expect!(p, TK_LOOP)
@@ -1691,11 +1692,11 @@ function parforClauseE(p::Parser)::Absyn.Equation
 end
 
 """
-    parforClauseA(p::Parser)::Absyn.Algorithm
+    parforClauseA(p::ParserState)::Absyn.Algorithm
 
 `parfor_clause_a`.
 """
-function parforClauseA(p::Parser)::Absyn.Algorithm
+function parforClauseA(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_PARFOR)
   local is::ImmutableList.List{Absyn.ForIterator} = forIndices(p)
   expect!(p, TK_LOOP)
@@ -1705,11 +1706,11 @@ function parforClauseA(p::Parser)::Absyn.Algorithm
 end
 
 """
-    whileClause(p::Parser)::Absyn.Algorithm
+    whileClause(p::ParserState)::Absyn.Algorithm
 
 `while_clause`: `while e loop stmts end while`.
 """
-function whileClause(p::Parser)::Absyn.Algorithm
+function whileClause(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_WHILE)
   local e::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_LOOP, "after the while condition")
@@ -1719,11 +1720,11 @@ function whileClause(p::Parser)::Absyn.Algorithm
 end
 
 """
-    tryClause(p::Parser)::Absyn.Algorithm
+    tryClause(p::ParserState)::Absyn.Algorithm
 
 `try_clause`: `try stmts else stmts end try`.
 """
-function tryClause(p::Parser)::Absyn.Algorithm
+function tryClause(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_TRY)
   local as1::ImmutableList.List{Absyn.AlgorithmItem} = algorithmList(p)
   expect!(p, TK_ELSE)
@@ -1733,11 +1734,11 @@ function tryClause(p::Parser)::Absyn.Algorithm
 end
 
 """
-    whenClauseE(p::Parser)::Absyn.Equation
+    whenClauseE(p::ParserState)::Absyn.Equation
 
 `when_clause_e`: `when e then eqs (elsewhen e then eqs)* end when`.
 """
-function whenClauseE(p::Parser)::Absyn.Equation
+function whenClauseE(p::ParserState)::Absyn.Equation
   expect!(p, TK_WHEN)
   local e::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_THEN, "after the when condition")
@@ -1754,11 +1755,11 @@ function whenClauseE(p::Parser)::Absyn.Equation
 end
 
 """
-    whenClauseA(p::Parser)::Absyn.Algorithm
+    whenClauseA(p::ParserState)::Absyn.Algorithm
 
 `when_clause_a`: the `when` statement.
 """
-function whenClauseA(p::Parser)::Absyn.Algorithm
+function whenClauseA(p::ParserState)::Absyn.Algorithm
   expect!(p, TK_WHEN)
   local e::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_THEN, "after the when condition")
@@ -1775,11 +1776,11 @@ function whenClauseA(p::Parser)::Absyn.Algorithm
 end
 
 """
-    reconfigureBlock(p::Parser)::Absyn.Equation
+    reconfigureBlock(p::ParserState)::Absyn.Equation
 
 `reconfigure_block` (variable structure systems).
 """
-function reconfigureBlock(p::Parser)::Absyn.Equation
+function reconfigureBlock(p::ParserState)::Absyn.Equation
   expect!(p, TK_RECONFIGURE)
   local vars::ImmutableList.List{Absyn.ElementItem} = reconfigureVarList(p)
   local clauses::Vector{Absyn.WhenClause} = Absyn.WhenClause[]
@@ -1826,12 +1827,12 @@ function reconfigureBlock(p::Parser)::Absyn.Equation
 end
 
 """
-    reconfigureVarList(p::Parser)::ImmutableList.List{Absyn.ElementItem}
+    reconfigureVarList(p::ParserState)::ImmutableList.List{Absyn.ElementItem}
 
 `reconfigure_var_list`: `(component_clause ';')*` up to `when`/`end reconfigure` (the source
 info of each element reaches to the end of the list, as in the C actions).
 """
-function reconfigureVarList(p::Parser)::ImmutableList.List{Absyn.ElementItem}
+function reconfigureVarList(p::ParserState)::ImmutableList.List{Absyn.ElementItem}
   local k::TokenKind = la(p)
   if k == TK_WHEN || k == TK_END_RECONFIGURE
     return NIL
@@ -1845,11 +1846,11 @@ function reconfigureVarList(p::Parser)::ImmutableList.List{Absyn.ElementItem}
 end
 
 """
-    equationListThen(p::Parser)::ImmutableList.List{Absyn.EquationItem}
+    equationListThen(p::ParserState)::ImmutableList.List{Absyn.EquationItem}
 
 `equation_list_then`: `(equation ';')*` up to `then` (match cases).
 """
-function equationListThen(p::Parser)::ImmutableList.List{Absyn.EquationItem}
+function equationListThen(p::ParserState)::ImmutableList.List{Absyn.EquationItem}
   local items::Vector{Absyn.EquationItem} = Absyn.EquationItem[]
   while la(p) != TK_THEN
     push!(items, equation(p))
@@ -1863,12 +1864,12 @@ function equationListThen(p::Parser)::ImmutableList.List{Absyn.EquationItem}
 end
 
 """
-    equationList(p::Parser)::ImmutableList.List{Absyn.EquationItem}
+    equationList(p::ParserState)::ImmutableList.List{Absyn.EquationItem}
 
 `equation_list`: `(equation ';')*` in a nested body. Each level takes the comments before its
 first token (in source order, before its equation).
 """
-function equationList(p::Parser)::ImmutableList.List{Absyn.EquationItem}
+function equationList(p::ParserState)::ImmutableList.List{Absyn.EquationItem}
   local equations::Vector{Absyn.EquationItem} = Absyn.EquationItem[]
   local firsts::Vector{Int} = Int[]
   local lasts::Vector{Int} = Int[]
@@ -1896,11 +1897,11 @@ function equationList(p::Parser)::ImmutableList.List{Absyn.EquationItem}
 end
 
 """
-    algorithmList(p::Parser)::ImmutableList.List{Absyn.AlgorithmItem}
+    algorithmList(p::ParserState)::ImmutableList.List{Absyn.AlgorithmItem}
 
 `algorithm_list`: `(algorithm ';')*` in a nested body (no comment items).
 """
-function algorithmList(p::Parser)::ImmutableList.List{Absyn.AlgorithmItem}
+function algorithmList(p::ParserState)::ImmutableList.List{Absyn.AlgorithmItem}
   local items::Vector{Absyn.AlgorithmItem} = Absyn.AlgorithmItem[]
   while startsAlgorithm(la(p))
     push!(items, algorithm(p))
@@ -1914,11 +1915,11 @@ function algorithmList(p::Parser)::ImmutableList.List{Absyn.AlgorithmItem}
 end
 
 """
-    connectClause(p::Parser)::Absyn.Equation
+    connectClause(p::ParserState)::Absyn.Equation
 
 `connect_clause`: `connect(cref, cref)`.
 """
-function connectClause(p::Parser)::Absyn.Equation
+function connectClause(p::ParserState)::Absyn.Equation
   expect!(p, TK_CONNECT)
   expect!(p, TK_LPAR, "after 'connect'")
   local cr1::Absyn.ComponentRef = componentReference(p)
@@ -1931,12 +1932,12 @@ end
 #= Expressions =#
 
 """
-    expression(p::Parser, allowPartEvalFunc::Bool)::Absyn.Exp
+    expression(p::ParserState, allowPartEvalFunc::Bool)::Absyn.Exp
 
 `expression`: an if-expression, a simple expression, a code expression, a match expression or
 (as a function argument) a partially applied function.
 """
-function expression(p::Parser, allowPartEvalFunc::Bool)::Absyn.Exp
+function expression(p::ParserState, allowPartEvalFunc::Bool)::Absyn.Exp
   local k::TokenKind = la(p)
   if k == TK_IF
     return ifExpression(p)
@@ -1958,11 +1959,11 @@ function expression(p::Parser, allowPartEvalFunc::Bool)::Absyn.Exp
 end
 
 """
-    ifExpression(p::Parser)::Absyn.Exp
+    ifExpression(p::ParserState)::Absyn.Exp
 
 `if_expression`: `if c then e (elseif c then e)* else e`.
 """
-function ifExpression(p::Parser)::Absyn.Exp
+function ifExpression(p::ParserState)::Absyn.Exp
   expect!(p, TK_IF)
   local cond::Absyn.Exp = expression(p, p.metaModelica)
   expect!(p, TK_THEN, "after the if condition")
@@ -1980,11 +1981,11 @@ function ifExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    forIndices(p::Parser)::ImmutableList.List{Absyn.ForIterator}
+    forIndices(p::ParserState)::ImmutableList.List{Absyn.ForIterator}
 
 `for_indices`: `for_index (',' for_index)*`.
 """
-function forIndices(p::Parser)::ImmutableList.List{Absyn.ForIterator}
+function forIndices(p::ParserState)::ImmutableList.List{Absyn.ForIterator}
   local its::Vector{Absyn.ForIterator} = Absyn.ForIterator[forIndex(p)]
   while accept!(p, TK_COMMA) != 0
     push!(its, forIndex(p))
@@ -1997,11 +1998,11 @@ function forIndices(p::Parser)::ImmutableList.List{Absyn.ForIterator}
 end
 
 """
-    forIndex(p::Parser)::Absyn.ForIterator
+    forIndex(p::ParserState)::Absyn.ForIterator
 
 `for_index`: `IDENT (((if|guard) e)? in e)?`.
 """
-function forIndex(p::Parser)::Absyn.ForIterator
+function forIndex(p::ParserState)::Absyn.ForIterator
   local i::Int = expect!(p, TK_IDENT, "(a for index)")
   local guard::Union{Nothing, Absyn.Exp} = nothing
   local e::Union{Nothing, Absyn.Exp} = nothing
@@ -2018,11 +2019,11 @@ function forIndex(p::Parser)::Absyn.ForIterator
 end
 
 """
-    simpleExpression(p::Parser)::Absyn.Exp
+    simpleExpression(p::ParserState)::Absyn.Exp
 
 `simple_expression`: `simple_expr ('::' simple_expression)?` or `IDENT as simple_expression`.
 """
-function simpleExpression(p::Parser)::Absyn.Exp
+function simpleExpression(p::ParserState)::Absyn.Exp
   if la(p) == TK_IDENT && la(p, 2) == TK_AS
     local i::Int = advance!(p)
     advance!(p)
@@ -2039,11 +2040,11 @@ function simpleExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    simpleExpr(p::Parser)::Absyn.Exp
+    simpleExpr(p::ParserState)::Absyn.Exp
 
 `simple_expr`: a logical expression or a range `a:b` / `a:b:c`.
 """
-function simpleExpr(p::Parser)::Absyn.Exp
+function simpleExpr(p::ParserState)::Absyn.Exp
   local e1::Absyn.Exp = logicalExpression(p)
   la(p) == TK_COLON || return e1
   advance!(p)
@@ -2057,11 +2058,11 @@ function simpleExpr(p::Parser)::Absyn.Exp
 end
 
 """
-    logicalExpression(p::Parser)::Absyn.Exp
+    logicalExpression(p::ParserState)::Absyn.Exp
 
 `logical_expression`: `logical_term (or logical_term)*`.
 """
-function logicalExpression(p::Parser)::Absyn.Exp
+function logicalExpression(p::ParserState)::Absyn.Exp
   local ast::Absyn.Exp = logicalTerm(p)
   while la(p) == TK_OR
     advance!(p)
@@ -2072,11 +2073,11 @@ function logicalExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    logicalTerm(p::Parser)::Absyn.Exp
+    logicalTerm(p::ParserState)::Absyn.Exp
 
 `logical_term`: `logical_factor (and logical_factor)*`.
 """
-function logicalTerm(p::Parser)::Absyn.Exp
+function logicalTerm(p::ParserState)::Absyn.Exp
   local ast::Absyn.Exp = logicalFactor(p)
   while la(p) == TK_AND
     advance!(p)
@@ -2087,11 +2088,11 @@ function logicalTerm(p::Parser)::Absyn.Exp
 end
 
 """
-    logicalFactor(p::Parser)::Absyn.Exp
+    logicalFactor(p::ParserState)::Absyn.Exp
 
 `logical_factor`: `not? relation`.
 """
-function logicalFactor(p::Parser)::Absyn.Exp
+function logicalFactor(p::ParserState)::Absyn.Exp
   if accept!(p, TK_NOT) != 0
     local e::Absyn.Exp = relation(p)
     return Absyn.LUNARY(Absyn.NOT(), e)
@@ -2100,11 +2101,11 @@ function logicalFactor(p::Parser)::Absyn.Exp
 end
 
 """
-    relation(p::Parser)::Absyn.Exp
+    relation(p::ParserState)::Absyn.Exp
 
 `relation`: `arithmetic_expression (relop arithmetic_expression)?`.
 """
-function relation(p::Parser)::Absyn.Exp
+function relation(p::ParserState)::Absyn.Exp
   local e1::Absyn.Exp = arithmeticExpression(p)
   local k::TokenKind = la(p)
   local op::Absyn.Operator
@@ -2129,11 +2130,11 @@ function relation(p::Parser)::Absyn.Exp
 end
 
 """
-    arithmeticExpression(p::Parser)::Absyn.Exp
+    arithmeticExpression(p::ParserState)::Absyn.Exp
 
 `arithmetic_expression`: `unary_arithmetic_expression ((+|-|.+|.-) term)*`.
 """
-function arithmeticExpression(p::Parser)::Absyn.Exp
+function arithmeticExpression(p::ParserState)::Absyn.Exp
   local ast::Absyn.Exp = unaryArithmeticExpression(p)
   while true
     local k::TokenKind = la(p)
@@ -2157,11 +2158,11 @@ function arithmeticExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    unaryArithmeticExpression(p::Parser)::Absyn.Exp
+    unaryArithmeticExpression(p::ParserState)::Absyn.Exp
 
 `unary_arithmetic_expression`: `(+|-|.+|.-)? term`.
 """
-function unaryArithmeticExpression(p::Parser)::Absyn.Exp
+function unaryArithmeticExpression(p::ParserState)::Absyn.Exp
   local k::TokenKind = la(p)
   local op::Absyn.Operator
   if k == TK_PLUS
@@ -2181,11 +2182,11 @@ function unaryArithmeticExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    term(p::Parser)::Absyn.Exp
+    term(p::ParserState)::Absyn.Exp
 
 `term`: `factor ((*|/|.*|./) factor)*`.
 """
-function term(p::Parser)::Absyn.Exp
+function term(p::ParserState)::Absyn.Exp
   local ast::Absyn.Exp = factor(p)
   while true
     local k::TokenKind = la(p)
@@ -2209,11 +2210,11 @@ function term(p::Parser)::Absyn.Exp
 end
 
 """
-    factor(p::Parser)::Absyn.Exp
+    factor(p::ParserState)::Absyn.Exp
 
 `factor`: `primary ((^|.^) primary)?`.
 """
-function factor(p::Parser)::Absyn.Exp
+function factor(p::ParserState)::Absyn.Exp
   local e1::Absyn.Exp = primary(p)
   local k::TokenKind = la(p)
   if k == TK_POWER || k == TK_POWER_EW
@@ -2259,12 +2260,12 @@ function realRepresentable(s::String)::Bool
 end
 
 """
-    primary(p::Parser)::Absyn.Exp
+    primary(p::ParserState)::Absyn.Exp
 
 `primary`: a literal, a component reference or call, `der(...)`, `pure(...)`, a parenthesized
 expression or tuple, a matrix, an array constructor, or `end`.
 """
-function primary(p::Parser)::Absyn.Exp
+function primary(p::ParserState)::Absyn.Exp
   local start::Int = p.pos
   local k::TokenKind = la(p)
   if k == TK_UNSIGNED_INTEGER
@@ -2328,12 +2329,12 @@ function primary(p::Parser)::Absyn.Exp
 end
 
 """
-    componentReferenceFunctionCall(p::Parser)::Absyn.Exp
+    componentReferenceFunctionCall(p::ParserState)::Absyn.Exp
 
 `component_reference__function_call`: `cref '<' names '>' function_call` (MetaModelica), `cref
 (function_call ('.' expression)?)?`, or `initial()`.
 """
-function componentReferenceFunctionCall(p::Parser)::Absyn.Exp
+function componentReferenceFunctionCall(p::ParserState)::Absyn.Exp
   local start::Int = p.pos
   if la(p) == TK_INITIAL
     advance!(p)
@@ -2365,12 +2366,12 @@ function componentReferenceFunctionCall(p::Parser)::Absyn.Exp
 end
 
 """
-    looksLikeTypeArguments(p::Parser)::Bool
+    looksLikeTypeArguments(p::ParserState)::Bool
 
 The syntactic predicate `cref '<' name_list '>' function_call`: at `<`, the tokens are names
 separated by commas, then `>` and `(`.
 """
-function looksLikeTypeArguments(p::Parser)::Bool
+function looksLikeTypeArguments(p::ParserState)::Bool
   local i::Int = p.pos + 1
   local kinds::Vector{TokenKind} = p.kinds
   local n::Int = length(kinds)
@@ -2388,11 +2389,11 @@ function looksLikeTypeArguments(p::Parser)::Bool
 end
 
 """
-    namePath(p::Parser)::Absyn.Path
+    namePath(p::ParserState)::Absyn.Path
 
 `name_path`: `'.'? name_path2`.
 """
-function namePath(p::Parser)::Absyn.Path
+function namePath(p::ParserState)::Absyn.Path
   if la(p) == TK_DOT
     advance!(p)
     return Absyn.FULLYQUALIFIED(namePath2(p))
@@ -2401,11 +2402,11 @@ function namePath(p::Parser)::Absyn.Path
 end
 
 """
-    namePath2(p::Parser)::Absyn.Path
+    namePath2(p::ParserState)::Absyn.Path
 
 `name_path2`: `(IDENT | \$Code) ('.' (IDENT | \$Code))*`.
 """
-function namePath2(p::Parser)::Absyn.Path
+function namePath2(p::ParserState)::Absyn.Path
   local first::Int = p.pos
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_CODE) || expectedError(p, "a name")
@@ -2427,11 +2428,11 @@ function namePath2(p::Parser)::Absyn.Path
 end
 
 """
-    namePathStar(p::Parser)::Tuple{Absyn.Path, Bool, Union{Nothing, ImmutableList.List{Absyn.GroupImport}}}
+    namePathStar(p::ParserState)::Tuple{Absyn.Path, Bool, Union{Nothing, ImmutableList.List{Absyn.GroupImport}}}
 
 `name_path_star`: an import name, `name.*` or `name.{a, b = c}`.
 """
-function namePathStar(p::Parser)::Tuple{Absyn.Path, Bool, Union{Nothing, ImmutableList.List{Absyn.GroupImport}}}
+function namePathStar(p::ParserState)::Tuple{Absyn.Path, Bool, Union{Nothing, ImmutableList.List{Absyn.GroupImport}}}
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_CODE) || expectedError(p, "a name to import")
   if la(p, 2) != TK_DOT || la(p, 3) == TK_LBRACE
@@ -2456,11 +2457,11 @@ function namePathStar(p::Parser)::Tuple{Absyn.Path, Bool, Union{Nothing, Immutab
 end
 
 """
-    namePathGroup(p::Parser)::ImmutableList.List{Absyn.GroupImport}
+    namePathGroup(p::ParserState)::ImmutableList.List{Absyn.GroupImport}
 
 `name_path_group`: `name ('=' name)? (',' ...)*` inside `import A.{...}`.
 """
-function namePathGroup(p::Parser)::ImmutableList.List{Absyn.GroupImport}
+function namePathGroup(p::ParserState)::ImmutableList.List{Absyn.GroupImport}
   local k::TokenKind = la(p)
   (k == TK_IDENT || k == TK_CODE) || expectedError(p, "a name")
   local id1::String = text(p, advance!(p))
@@ -2479,11 +2480,11 @@ function namePathGroup(p::Parser)::ImmutableList.List{Absyn.GroupImport}
 end
 
 """
-    componentReference(p::Parser)::Absyn.ComponentRef
+    componentReference(p::ParserState)::Absyn.ComponentRef
 
 `component_reference`: `'.'? component_reference2`, `__` or `_`.
 """
-function componentReference(p::Parser)::Absyn.ComponentRef
+function componentReference(p::ParserState)::Absyn.ComponentRef
   local k::TokenKind = la(p)
   if k == TK_DOT
     advance!(p)
@@ -2497,11 +2498,11 @@ function componentReference(p::Parser)::Absyn.ComponentRef
 end
 
 """
-    componentReference2(p::Parser)::Absyn.ComponentRef
+    componentReference2(p::ParserState)::Absyn.ComponentRef
 
 `component_reference2`: `(IDENT | operator) array_subscripts? ('.' component_reference2)?`.
 """
-function componentReference2(p::Parser)::Absyn.ComponentRef
+function componentReference2(p::ParserState)::Absyn.ComponentRef
   local names::Vector{String} = String[]
   local subs::Vector{ImmutableList.List{Absyn.Subscript}} = ImmutableList.List{Absyn.Subscript}[]
   while true
@@ -2521,11 +2522,11 @@ function componentReference2(p::Parser)::Absyn.ComponentRef
 end
 
 """
-    functionCall(p::Parser)::Absyn.FunctionArgs
+    functionCall(p::ParserState)::Absyn.FunctionArgs
 
 `function_call`: `'(' function_arguments ')'`.
 """
-function functionCall(p::Parser)::Absyn.FunctionArgs
+function functionCall(p::ParserState)::Absyn.FunctionArgs
   expect!(p, TK_LPAR)
   local fa::Absyn.FunctionArgs = functionArguments(p)
   expect!(p, TK_RPAR, "at the end of the function arguments")
@@ -2533,11 +2534,11 @@ function functionCall(p::Parser)::Absyn.FunctionArgs
 end
 
 """
-    functionArguments(p::Parser)::Absyn.FunctionArgs
+    functionArguments(p::ParserState)::Absyn.FunctionArgs
 
 `function_arguments`: `for_or_expression_list named_arguments?`.
 """
-function functionArguments(p::Parser)::Absyn.FunctionArgs
+function functionArguments(p::ParserState)::Absyn.FunctionArgs
   local (el::Any, isFor::Bool) = forOrExpressionList(p)
   local namel::Union{Nothing, ImmutableList.List{Absyn.NamedArg}} = nothing
   local k::TokenKind = la(p)
@@ -2551,12 +2552,12 @@ function functionArguments(p::Parser)::Absyn.FunctionArgs
 end
 
 """
-    forOrExpressionList(p::Parser)::Tuple{Any, Bool}
+    forOrExpressionList(p::ParserState)::Tuple{Any, Bool}
 
 `for_or_expression_list`: the positional arguments (a list), or `e for iterators` (a
 `FOR_ITER_FARG`, second result `true`).
 """
-function forOrExpressionList(p::Parser)::Tuple{Any, Bool}
+function forOrExpressionList(p::ParserState)::Tuple{Any, Bool}
   local k::TokenKind = la(p)
   if ((k == TK_IDENT || k == TK_OPERATOR) && la(p, 2) == TK_EQUALS) || k == TK_RPAR || k == TK_RBRACE
     return (NIL, false)
@@ -2576,11 +2577,11 @@ function forOrExpressionList(p::Parser)::Tuple{Any, Bool}
 end
 
 """
-    forOrExpressionList2(p::Parser)::ImmutableList.List{Absyn.Exp}
+    forOrExpressionList2(p::ParserState)::ImmutableList.List{Absyn.Exp}
 
 `for_or_expression_list2`: `(',' expression)*`, stopping before the named arguments.
 """
-function forOrExpressionList2(p::Parser)::ImmutableList.List{Absyn.Exp}
+function forOrExpressionList2(p::ParserState)::ImmutableList.List{Absyn.Exp}
   local ast::ImmutableList.List{Absyn.Exp} = NIL
   while la(p) == TK_COMMA
     advance!(p)
@@ -2594,11 +2595,11 @@ function forOrExpressionList2(p::Parser)::ImmutableList.List{Absyn.Exp}
 end
 
 """
-    namedArguments(p::Parser)::ImmutableList.List{Absyn.NamedArg}
+    namedArguments(p::ParserState)::ImmutableList.List{Absyn.NamedArg}
 
 `named_arguments`: `named_argument (',' named_argument)*`.
 """
-function namedArguments(p::Parser)::ImmutableList.List{Absyn.NamedArg}
+function namedArguments(p::ParserState)::ImmutableList.List{Absyn.NamedArg}
   local args::Vector{Absyn.NamedArg} = Absyn.NamedArg[]
   while true
     local k::TokenKind = la(p)
@@ -2617,12 +2618,12 @@ function namedArguments(p::Parser)::ImmutableList.List{Absyn.NamedArg}
 end
 
 """
-    outputExpressionList(p::Parser, isTuple::Base.RefValue{Bool})::Any
+    outputExpressionList(p::ParserState, isTuple::Base.RefValue{Bool})::Any
 
 `output_expression_list`: the inside of `( ... )` up to and including `)`: one expression, or
 (setting `isTuple`) the tuple elements, empty positions as `_`.
 """
-function outputExpressionList(p::Parser, isTuple::Base.RefValue{Bool})::Any
+function outputExpressionList(p::ParserState, isTuple::Base.RefValue{Bool})::Any
   local k::TokenKind = la(p)
   if k == TK_RPAR
     advance!(p)
@@ -2649,11 +2650,11 @@ function outputExpressionList(p::Parser, isTuple::Base.RefValue{Bool})::Any
 end
 
 """
-    expressionList(p::Parser)::ImmutableList.List{Absyn.Exp}
+    expressionList(p::ParserState)::ImmutableList.List{Absyn.Exp}
 
 `expression_list`: `expression (',' expression)*`.
 """
-function expressionList(p::Parser)::ImmutableList.List{Absyn.Exp}
+function expressionList(p::ParserState)::ImmutableList.List{Absyn.Exp}
   local exps::Vector{Absyn.Exp} = Absyn.Exp[expression(p, p.metaModelica)]
   while accept!(p, TK_COMMA) != 0
     push!(exps, expression(p, p.metaModelica))
@@ -2666,11 +2667,11 @@ function expressionList(p::Parser)::ImmutableList.List{Absyn.Exp}
 end
 
 """
-    arraySubscripts(p::Parser)::ImmutableList.List{Absyn.Subscript}
+    arraySubscripts(p::ParserState)::ImmutableList.List{Absyn.Subscript}
 
 `array_subscripts`: `'[' subscript (',' subscript)* ']'`, a subscript an expression or `:`.
 """
-function arraySubscripts(p::Parser)::ImmutableList.List{Absyn.Subscript}
+function arraySubscripts(p::ParserState)::ImmutableList.List{Absyn.Subscript}
   expect!(p, TK_LBRACK)
   local subs::Vector{Absyn.Subscript} = Absyn.Subscript[]
   while true
@@ -2690,11 +2691,11 @@ function arraySubscripts(p::Parser)::ImmutableList.List{Absyn.Subscript}
 end
 
 """
-    comment(p::Parser)::Union{Nothing, Absyn.Comment}
+    comment(p::ParserState)::Union{Nothing, Absyn.Comment}
 
 `comment`: `string_comment annotation?` (`nothing` when neither is there).
 """
-function comment(p::Parser)::Union{Nothing, Absyn.Comment}
+function comment(p::ParserState)::Union{Nothing, Absyn.Comment}
   local cmt::Union{Nothing, String} = stringComment(p)
   local ann::Union{Nothing, Absyn.Annotation} = la(p) == TK_ANNOTATION ? annotation(p) : nothing
   if cmt !== nothing || ann !== nothing
@@ -2706,11 +2707,11 @@ function comment(p::Parser)::Union{Nothing, Absyn.Comment}
 end
 
 """
-    stringComment(p::Parser)::Union{Nothing, String}
+    stringComment(p::ParserState)::Union{Nothing, String}
 
 `string_comment`: `(STRING ('+' STRING)*)?`, the strings concatenated as written.
 """
-function stringComment(p::Parser)::Union{Nothing, String}
+function stringComment(p::ParserState)::Union{Nothing, String}
   la(p) == TK_STRING || return nothing
   local s::String = text(p, advance!(p))
   while la(p) == TK_PLUS
@@ -2721,11 +2722,11 @@ function stringComment(p::Parser)::Union{Nothing, String}
 end
 
 """
-    annotation(p::Parser)::Absyn.Annotation
+    annotation(p::ParserState)::Absyn.Annotation
 
 `annotation`: `annotation class_modification`.
 """
-function annotation(p::Parser)::Absyn.Annotation
+function annotation(p::ParserState)::Absyn.Annotation
   expect!(p, TK_ANNOTATION)
   return Absyn.ANNOTATION(classModification(p))
 end
@@ -2733,11 +2734,11 @@ end
 #= Code quotation =#
 
 """
-    codeExpression(p::Parser)::Absyn.Exp
+    codeExpression(p::ParserState)::Absyn.Exp
 
 `code_expression`: `\$Code(...)`, `\$TypeName(...)`, `\$annotation(...)`, `\$Var(...)`.
 """
-function codeExpression(p::Parser)::Absyn.Exp
+function codeExpression(p::ParserState)::Absyn.Exp
   local k::TokenKind = la(p)
   if k == TK_CODE_NAME
     advance!(p)
@@ -2808,12 +2809,12 @@ function codeExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    speculateExpressionThen(p::Parser, k::TokenKind, parenthesized::Bool)::Bool
+    speculateExpressionThen(p::ParserState, k::TokenKind, parenthesized::Bool)::Bool
 
 The syntactic predicates of `code_expression`: `('(' expression ')') =>` when `parenthesized`,
 else `(expression k) =>`. Parses ahead and restores the position.
 """
-function speculateExpressionThen(p::Parser, k::TokenKind, parenthesized::Bool)::Bool
+function speculateExpressionThen(p::ParserState, k::TokenKind, parenthesized::Bool)::Bool
   local pos::Int = p.pos
   local firstComment::Int = p.firstComment
   local ok::Bool = false
@@ -2839,11 +2840,11 @@ end
 #= MetaModelica =#
 
 """
-    matchExpression(p::Parser)::Absyn.Exp
+    matchExpression(p::ParserState)::Absyn.Exp
 
 `match_expression`: `(match | matchcontinue) e string_comment local_clause cases end ...`.
 """
-function matchExpression(p::Parser)::Absyn.Exp
+function matchExpression(p::ParserState)::Absyn.Exp
   local ty::TokenKind = la(p)
   advance!(p)
   local exp::Absyn.Exp = expression(p, p.metaModelica)
@@ -2855,21 +2856,21 @@ function matchExpression(p::Parser)::Absyn.Exp
 end
 
 """
-    localClause(p::Parser)::Union{Nothing, ImmutableList.List{Absyn.ElementItem}}
+    localClause(p::ParserState)::Union{Nothing, ImmutableList.List{Absyn.ElementItem}}
 
 `local_clause`: `(local element_list)?`.
 """
-function localClause(p::Parser)::Union{Nothing, ImmutableList.List{Absyn.ElementItem}}
+function localClause(p::ParserState)::Union{Nothing, ImmutableList.List{Absyn.ElementItem}}
   accept!(p, TK_LOCAL) != 0 || return nothing
   return elementList(p, nothing)
 end
 
 """
-    caseBody(p::Parser)::Absyn.ClassPart
+    caseBody(p::ParserState)::Absyn.ClassPart
 
 The `equation ...` or `algorithm ...` part of a case (`EQUATIONS(nil)` when there is none).
 """
-function caseBody(p::Parser)::Absyn.ClassPart
+function caseBody(p::ParserState)::Absyn.ClassPart
   if accept!(p, TK_EQUATION) != 0
     return Absyn.EQUATIONS(equationListThen(p))
   elseif accept!(p, TK_ALGORITHM) != 0
@@ -2879,11 +2880,11 @@ function caseBody(p::Parser)::Absyn.ClassPart
 end
 
 """
-    cases(p::Parser)::ImmutableList.List{Absyn.Case}
+    cases(p::ParserState)::ImmutableList.List{Absyn.Case}
 
 `cases` and `cases2`: `onecase+ (else ...)?`.
 """
-function cases(p::Parser)::ImmutableList.List{Absyn.Case}
+function cases(p::ParserState)::ImmutableList.List{Absyn.Case}
   local cs::Vector{Absyn.Case} = Absyn.Case[]
   la(p) == TK_CASE || expectedError(p, "'case'")
   while la(p) == TK_CASE
@@ -2901,12 +2902,12 @@ function cases(p::Parser)::ImmutableList.List{Absyn.Case}
 end
 
 """
-    elseCaseHasBody(p::Parser)::Bool
+    elseCaseHasBody(p::ParserState)::Bool
 
 After `else`: the optional `string_comment local_clause (equation|algorithm ...)? then` comes
 (not just the result expression).
 """
-function elseCaseHasBody(p::Parser)::Bool
+function elseCaseHasBody(p::ParserState)::Bool
   local i::Int = p.pos
   local kinds::Vector{TokenKind} = p.kinds
   local n::Int = length(kinds)
@@ -2922,11 +2923,11 @@ function elseCaseHasBody(p::Parser)::Bool
 end
 
 """
-    elseCase(p::Parser)::ImmutableList.List{Absyn.Case}
+    elseCase(p::ParserState)::ImmutableList.List{Absyn.Case}
 
 The `else` case of `cases2`.
 """
-function elseCase(p::Parser)::ImmutableList.List{Absyn.Case}
+function elseCase(p::ParserState)::ImmutableList.List{Absyn.Case}
   local start::Int = expect!(p, TK_ELSE)
   local el::Int = start
   local cmt::Union{Nothing, String} = nothing
@@ -2945,12 +2946,12 @@ function elseCase(p::Parser)::ImmutableList.List{Absyn.Case}
 end
 
 """
-    onecase(p::Parser)::Absyn.Case
+    onecase(p::ParserState)::Absyn.Case
 
 `onecase`: `case pattern ((if|guard) e)? string_comment local_clause (equation ...|algorithm ...)?
 then e ';'`.
 """
-function onecase(p::Parser)::Absyn.Case
+function onecase(p::ParserState)::Absyn.Case
   local start::Int = expect!(p, TK_CASE)
   local patStart::Int = p.pos
   local pat::Absyn.Exp = expression(p, false)
@@ -2979,6 +2980,6 @@ Tokenize and parse a Modelica (or MetaModelica, ...) source. Throws a `ParseErro
 function parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
   local dialect::Dialect = Dialect(acceptedGram, langStd)
   local ts::Tokens = tokenize(source, fileName, dialect)
-  local p::Parser = Parser(ts, dialect, readOnly)
+  local p::ParserState = ParserState(ts, dialect, readOnly)
   return storedDefinition(p)
 end

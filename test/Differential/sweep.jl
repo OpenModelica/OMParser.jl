@@ -2,7 +2,7 @@
 Compare the parser with OMParser 0.2's ANTLR/C parser on many files.
 
   OMPARSER_REFERENCE_LIB=<libomparse-julia of OMParser 0.2.4> \
-    julia --project=<env with OMParser> sweep.jl <out.tsv> <root> [<root> ...]
+    julia --project=<env with OMParser and Absyn> sweep.jl <out.tsv> <root> [<root> ...]
 
 Every `.mo` file under the roots is parsed by both parsers (MetaModelica grammar for files
 under a `metamodelica` directory or the OMCompiler sources, Modelica otherwise). Each line of

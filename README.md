@@ -5,6 +5,10 @@ PDEModelica) into `Absyn` trees, the abstract syntax of the OpenModelica compile
 [OMFrontend.jl](https://github.com/OpenModelica/OMFrontend.jl) instantiates. Pure Julia: nothing to
 build.
 
+Two modules: `OMParser.Absyn`, the syntax tree records (formerly the package Absyn.jl), and
+`OMParser.Parser`, the lexer and parser. `parseFile`, `parseString` and `ParseError` are also
+`OMParser.parseFile` etc.
+
 ## Install
 OMParser is in the OpenModelica registry:
 ```julia
@@ -24,6 +28,13 @@ fileName = "<default>", acceptedGram = 1, languageStandard = 1000)` return an `A
 `acceptedGram`: 1 Modelica, 2 MetaModelica, 3 ParModelica, 4 Optimica, 5 PDEModelica.
 `languageStandard`: 10, 20, 30, 31, 32, 33, 34, 35 (1.x to 3.5), 1000 (latest), 9999 (experimental).
 
+The records keep their names under `import OMParser.Absyn`:
+```julia
+import OMParser.Absyn
+program isa Absyn.PROGRAM
+Absyn.dumpPath(Absyn.QUALIFIED("Modelica", Absyn.IDENT("Blocks")))   # "Modelica.Blocks"
+```
+
 A syntax error throws an `OMParser.ParseError` with the file, line and column:
 ```
 M.mo:2:9: Expected ';' after the element but found 'equation' on line 3
@@ -32,10 +43,11 @@ M.mo:2:9: Expected ';' after the element but found 'equation' on line 3
 ```
 
 ## How it works
-A lexer (`src/Lexer.jl`) and a recursive-descent parser (`src/Parser.jl`) with one function per rule
-of omc's grammar (`OMCompiler/Parser/Modelica.g` in the OpenModelica repository). The trees are the
+A lexer (`src/Parser/Lexer.jl`) and a recursive-descent parser (`src/Parser/Rules.jl`) with one
+function per rule of omc's grammar (`OMCompiler/Parser/Modelica.g` in the OpenModelica repository). The trees are the
 ones omc's ANTLR parser builds, source positions and comments included: `test/Differential`
-compares the two (OMParser 0.2, the ANTLR/C parser, loaded from its library) over directory trees,
+compares the two (OMParser 0.2, the ANTLR/C parser, loaded from its library; its trees are built
+from the Absyn.jl package's records, compared by name) over directory trees,
 and they agree on the Modelica Standard Library, the OpenModelica testsuite, the OpenModelica
 compiler's MetaModelica sources and the Buildings library.
 

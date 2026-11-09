@@ -1,8 +1,10 @@
 using Test
 
 import OMParser
+import MetaModelica
 
 include("dispatchCheck.jl")
+include("absynTests.jl")
 
 cd(@__DIR__) do
   @testset "Simple standalone modules" begin
@@ -119,21 +121,21 @@ cd(@__DIR__) do
   #= Values from OMParser 0.2's ANTLR parser (the same as omc's). =#
   @testset "Source positions and comments" begin
     #= SOURCEINFO is mutable: compare its fields. =#
-    fields(i::OMParser.MetaModelica.SourceInfo) = ntuple(k -> getfield(i, k), fieldcount(typeof(i)))
+    fields(i::MetaModelica.SourceInfo) = ntuple(k -> getfield(i, k), fieldcount(typeof(i)))
     local p = OMParser.parseString("model A \"doc\"\n  Real x; // c\nequation\n  x = 1;\nend A;\n", "pos.mo")
     local c = p.classes.head
-    @test fields(c.info) == fields(OMParser.MetaModelica.SOURCEINFO("pos.mo", true, 1, 1, 5, 6, 0.0))
+    @test fields(c.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 1, 1, 5, 6, 0.0))
     local elements = c.body.classParts.head.contents
-    @test fields(elements.head.element.info) == fields(OMParser.MetaModelica.SOURCEINFO("pos.mo", true, 2, 3, 2, 9, 0.0))
+    @test fields(elements.head.element.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 2, 3, 2, 9, 0.0))
     @test elements.tail.head == OMParser.Absyn.LEXER_COMMENT("// c\n")
     local eq = c.body.classParts.tail.head.contents.head
-    @test fields(eq.info) == fields(OMParser.MetaModelica.SOURCEINFO("pos.mo", true, 4, 3, 4, 8, 0.0))
+    @test fields(eq.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 4, 3, 4, 8, 0.0))
   end
 
   #= Every call in the parser resolved when compiled: fast, compiled ahead by the precompile
      workload, and a requirement of `juliac --trim=safe`. =#
   @testset "Token names" begin
-    @test all(k -> haskey(OMParser.TOKEN_NAMES, k), instances(OMParser.TokenKind))
+    @test all(k -> haskey(OMParser.Parser.TOKEN_NAMES, k), instances(OMParser.Parser.TokenKind))
   end
 
   @testset "No dynamic dispatch" begin

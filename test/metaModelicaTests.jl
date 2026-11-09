@@ -1,7 +1,7 @@
 using Test
 using MetaModelica
-import Absyn
 import OMParser
+import OMParser.Absyn
 
 #= Helper: parse a MetaModelica string.
    acceptedGram=2 selects MetaModelica, languageStandard=9999 is experimental. =#

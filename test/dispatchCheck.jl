@@ -1,5 +1,5 @@
 #=
-List the calls of OMParser's own methods that are dispatched at run time: calls the compiler
+List the calls of the parser's own methods (`OMParser.Parser`) that are dispatched at run time: calls the compiler
 could not resolve to one method from the inferred argument types. Each one costs a dynamic dispatch
 per call, compiles a new specialization per combination of argument types on first use (the first
 parse of a large file), and blocks `juliac --trim=safe`.
@@ -10,12 +10,12 @@ parse of a large file), and blocks `juliac --trim=safe`.
 import OMParser
 
 """
-    dynamicCalls(mod::Module = OMParser)::Vector{Tuple{Method, String}}
+    dynamicCalls(mod::Module = OMParser.Parser)::Vector{Tuple{Method, String}}
 
 For every method defined in `mod` whose signature has concrete argument types, the `:call`
 expressions left after inference (dynamic dispatch), as `(method, call)` pairs.
 """
-function dynamicCalls(mod::Module = OMParser)::Vector{Tuple{Method, String}}
+function dynamicCalls(mod::Module = OMParser.Parser)::Vector{Tuple{Method, String}}
   local found::Vector{Tuple{Method, String}} = Tuple{Method, String}[]
   for name::Symbol in names(mod; all = true)
     isdefined(mod, name) || continue

@@ -29,73 +29,23 @@ CONDITIONS OF OSMC-PL.
 """
     OMParser
 
-The Modelica parser of OM.jl: `parseFile` and `parseString` turn Modelica (or MetaModelica,
-ParModelica, Optimica, PDEModelica) source into an `Absyn.Program`, the same trees omc's parser
-builds. A lexer (`tokenize`) and a recursive-descent parser with one function per grammar rule,
-written in Julia. Errors are `ParseError`s that say what was expected where.
+The Modelica parser of OM.jl, in two modules:
+- `OMParser.Absyn`: the abstract syntax (omc's Absyn records);
+- `OMParser.Parser`: a lexer (`tokenize`) and a recursive-descent parser with one function per
+  grammar rule, written in Julia.
+
+`parseFile` and `parseString` turn Modelica (or MetaModelica, ParModelica, Optimica, PDEModelica)
+source into an `Absyn.Program`, the same trees omc's parser builds. Errors are `ParseError`s that
+say what was expected where.
 """
 module OMParser
 
-import Absyn
-import ImmutableList
-import MetaModelica
+public Absyn, Parser, parseFile, parseString, ParseError
 
-public parseFile, parseString, ParseError
+include("Absyn/Absyn.jl")
+include("Parser/Parser.jl")
 
-include("Tokens.jl")
-include("Lexer.jl")
-include("Parser.jl")
-
-"""
-The arguments `languageStandard` and `acceptedGram` of `parseFile` and `parseString`, for their
-docstrings.
-"""
-const ARGUMENTS_TEXT = """
-Language standards (`languageStandard`):
-```
- ("1.x", 10), ("2.x", 20), ("3.0", 30), ("3.1", 31), ("3.2", 32), ("3.3", 33),
- ("3.4", 34), ("3.5", 35), ("latest", 1000), ("experimental", 9999)
-```
-Grammars (`acceptedGram`):
-```
- 1 = Modelica, 2 = MetaModelica, 3 = ParModelica, 4 = Optimica, 5 = PDEModelica
-```
-"""
-
-"""
-    parseString(contents::String, interactiveFileName::String = "<default>",
-                acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
-
-Parse Modelica source text. `interactiveFileName` is the file name in the `SourceInfo`s and in
-error messages, and the classes are marked read-only. The text ends at its first NUL character
-(as omc reads it). Throws a `ParseError`.
-
-$(ARGUMENTS_TEXT)
-"""
-function parseString(contents::String, interactiveFileName::String = "<default>",
-                     acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
-  local nul::Union{Nothing, Int} = findfirst(==(0x00), codeunits(contents))
-  local source::String = nul === nothing ? contents : String(codeunits(contents)[1:nul - 1])
-  return parseSource(source, interactiveFileName, acceptedGram, languageStandard, true)
-end
-
-"""
-    parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
-
-Parse a Modelica file. Throws a `ParseError` (line 0 when the file cannot be read).
-
-$(ARGUMENTS_TEXT)
-"""
-function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::Int64 = 9999)::Absyn.Program
-  local source::String = ""
-  try
-    source = read(fileName, String)
-  catch err
-    err isa SystemError || rethrow()
-    throw(ParseError(fileName, 0, 0, "cannot read the file: " * Libc.strerror(err.errnum), ""))
-  end
-  return parseSource(source, fileName, acceptedGram, languageStandard, false)
-end
+using .Parser: parseFile, parseString, ParseError
 
 include("Precompile.jl")
 

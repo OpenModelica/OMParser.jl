@@ -4,11 +4,11 @@ An example of OMParser in an executable compiled with JuliaC (`--trim=safe`):
 
   julia --project=<env with JuliaC> -e 'using JuliaC; JuliaC.main(ARGS)' -- \
     --output-exe omparse --bundle build --trim=safe --experimental \
-    --project=<env with OMParser and Absyn> bin/omparse.jl
+    --project=<env with OMParser> bin/omparse.jl
   build/bin/omparse MSL_4_1_0.mo
 =#
-import Absyn
 import OMParser
+import OMParser.Absyn
 
 function (@main)(args::Vector{String})::Cint
   local status::Cint = 0
