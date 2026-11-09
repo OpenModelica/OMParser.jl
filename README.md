@@ -57,4 +57,5 @@ The parser has no dynamic dispatch (tested), so programs that use it can be comp
 (the build command is in the file): a 2.4 MB executable that parses MSL 4.1.0 in 0.13 s.
 
 ## License
-See [LICENSE.md](LICENSE.md).
+GPL version 3 ([COPYING](COPYING)) or the OSMC Public License (OSMC-PL), according to the
+recipient's choice: see [LICENSE.md](LICENSE.md).
