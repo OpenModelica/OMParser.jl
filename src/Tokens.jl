@@ -187,13 +187,10 @@ end
     tokenName(k::TokenKind)::String
 
 How a token kind is shown in error messages: the keyword or operator as written, or a
-description (`identifier`, `end of file`).
+description (`identifier`, `end of file`). Every kind has an entry in `TOKEN_NAMES` (tested).
 """
 function tokenName(k::TokenKind)::String
-  local s::String = get(TOKEN_NAMES, k, "")
-  isempty(s) || return s
-  local name::String = string(k)
-  return lowercase(name[4:end])
+  return TOKEN_NAMES[k]
 end
 
 """

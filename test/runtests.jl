@@ -132,6 +132,10 @@ cd(@__DIR__) do
 
   #= Every call in the parser resolved when compiled: fast, compiled ahead by the precompile
      workload, and a requirement of `juliac --trim=safe`. =#
+  @testset "Token names" begin
+    @test all(k -> haskey(OMParser.TOKEN_NAMES, k), instances(OMParser.TokenKind))
+  end
+
   @testset "No dynamic dispatch" begin
     local calls = dynamicCalls()
     for (m, call) in calls

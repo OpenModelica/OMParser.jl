@@ -39,5 +39,10 @@ compares the two (OMParser 0.2, the ANTLR/C parser, loaded from its library) ove
 and they agree on the Modelica Standard Library, the OpenModelica testsuite, the OpenModelica
 compiler's MetaModelica sources and the Buildings library.
 
+## Compile with JuliaC
+The parser has no dynamic dispatch (tested), so programs that use it can be compiled with
+[JuliaC](https://github.com/JuliaLang/JuliaC.jl) and `--trim=safe`. `bin/omparse.jl` is an example
+(the build command is in the file): a 2.4 MB executable that parses MSL 4.1.0 in 0.13 s.
+
 ## License
 See [LICENSE.md](LICENSE.md).

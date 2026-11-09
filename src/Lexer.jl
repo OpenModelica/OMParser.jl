@@ -103,7 +103,11 @@ function Base.showerror(io::IO, err::ParseError)
   print(io, err.fileName, ":", err.line, ":", err.column, ": ", err.message)
   if !isempty(err.sourceLine)
     local shown::String = replace(err.sourceLine, '\t' => ' ')
-    print(io, "\n  ", shown, "\n  ", " "^max(0, err.column - 1), "^")
+    print(io, "\n  ", shown, "\n  ")
+    for _ in 2:err.column
+      print(io, ' ')
+    end
+    print(io, '^')
   end
 end
 
