@@ -28,7 +28,7 @@ jobs:
       uses: JKRT/OM.jl/.github/actions/checkout-siblings@master
       with:
         path: ..
-        packages: Absyn ImmutableList MetaModelica
+        packages: ImmutableList MetaModelica
 
     - name: Develop sibling OM.jl packages
       shell: bash
@@ -40,7 +40,6 @@ jobs:
           Pkg.develop([
             Pkg.PackageSpec(path="../ImmutableList.jl"),
             Pkg.PackageSpec(path="../MetaModelica.jl"),
-            Pkg.PackageSpec(path="../Absyn.jl"),
           ])
           Pkg.instantiate()
         '
