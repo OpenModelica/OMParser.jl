@@ -190,6 +190,18 @@ cd(@__DIR__) do
     @test_throws Exception OMParser.parseString("model M Real y = (1, 2)[1]; end M;")
   end
 
+  #= omc's lexer (BaseModelica_Lexer.g): QCHAR includes '"'; IDENT2 includes $Sensitivities and $DER. =#
+  @testset "Identifiers as in omc's lexer" begin
+    local p = OMParser.parseString(raw"model 'a\"b' Real y = $DER.x + $Sensitivities; end 'a\"b';")
+    local c = p.classes.head
+    @test c.name == raw"'a\"b'"
+    local comps = c.body.classParts.head.contents
+    local y = comps.head.element.specification.components.head.component.modification.data.eqMod.exp
+    @test y isa OMParser.Absyn.BINARY
+    @test y.exp1.componentRef isa OMParser.Absyn.CREF_QUAL && y.exp1.componentRef.name == raw"$DER"
+    @test y.exp2.componentRef isa OMParser.Absyn.CREF_IDENT && y.exp2.componentRef.name == raw"$Sensitivities"
+  end
+
   @testset "Standard Library" begin
     @test true == begin
       try

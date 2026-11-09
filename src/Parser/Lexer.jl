@@ -171,9 +171,10 @@ end
 """
     isQChar(b::UInt8)::Bool
 
-A character of a quoted identifier (`QCHAR`): printable ASCII except `"`, `'`, `\\` and `` ` ``.
+A character of a quoted identifier (`QCHAR`, as omc's BaseModelica_Lexer.g): printable ASCII except `'`,
+`\\` and `` ` ``.
 """
-@inline isQChar(b::UInt8)::Bool = 0x20 <= b <= 0x7e && b != 0x22 && b != 0x27 && b != 0x5c && b != 0x60
+@inline isQChar(b::UInt8)::Bool = 0x20 <= b <= 0x7e && b != 0x27 && b != 0x5c && b != 0x60
 
 """
     isEscapeChar(b::UInt8)::Bool
@@ -598,10 +599,13 @@ const BEGIN_WORD = packWord("begin")
 const MODIFICATION_WORD = packWord("modification")
 
 """
-The words starting with `\$` and their tokens (`\$cpuTime` is an identifier).
+The words starting with `\$` and their tokens (`\$cpuTime`, `\$Sensitivities` and `\$DER` are identifiers,
+as omc's IDENT2).
 """
-const DOLLAR_WORDS = String["\$Code", "\$TypeName", "\$Exp", "\$annotation", "\$Var", "\$overload", "\$cpuTime"]
-const DOLLAR_KINDS = TokenKind[TK_CODE, TK_CODE_NAME, TK_CODE_EXP, TK_CODE_ANNOTATION, TK_CODE_VAR, TK_OVERLOAD, TK_IDENT]
+const DOLLAR_WORDS = String["\$Code", "\$TypeName", "\$Exp", "\$annotation", "\$Var", "\$overload", "\$cpuTime",
+                            "\$Sensitivities", "\$DER"]
+const DOLLAR_KINDS = TokenKind[TK_CODE, TK_CODE_NAME, TK_CODE_EXP, TK_CODE_ANNOTATION, TK_CODE_VAR, TK_OVERLOAD, TK_IDENT,
+                               TK_IDENT, TK_IDENT]
 
 """
     dollarWord(cu::Base.CodeUnits{UInt8, String}, i::Int)::Int
