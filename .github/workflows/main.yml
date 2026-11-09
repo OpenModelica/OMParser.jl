@@ -1,4 +1,4 @@
-name: Build CI
+name: CI
 
 on:
   push:
@@ -6,53 +6,20 @@ on:
   pull_request:
     branches: [ master ]
 jobs:
-  build:
-    runs-on: ${{ matrix.sys.os }}
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        sys:
-          - { os: windows-latest, shell: 'msys2 {0}' }
-          - { os: ubuntu-latest,  shell: bash  }
-          - { os: macos-latest,   shell: bash  }
+        os: [ubuntu-latest, windows-latest, macos-latest]
         julia-version: ['1.13']
-    defaults:
-      run:
-        shell: ${{ matrix.sys.shell }}
-    name: Build parser (${{ matrix.sys.os }}, Julia ${{ matrix.julia-version }})
+    name: Test (${{ matrix.os }}, Julia ${{ matrix.julia-version }})
     steps:
-    - uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '21'
-    - name: setup julia environment
-      uses: julia-actions/setup-julia@v2
+    - uses: actions/checkout@v4
+
+    - uses: julia-actions/setup-julia@v2
       with:
         version: ${{ matrix.julia-version }}
-    - name: setup msys2 environment
-      uses: msys2/setup-msys2@v2
-      with:
-        update: false
-        platform-check-severity: warn
-        install: autoconf automake m4 pkg-config libtool base-devel mingw-w64-x86_64-toolchain
-        path-type: inherit # to find julia!
-
-    - name: set git to use LF on Windows
-      if: contains(matrix.sys.os, 'windows')
-      run: |
-        git config --system core.autocrlf false
-        git config --system core.eol lf
-
-    - name: Install autotools if the system is macOS
-      if: contains(matrix.sys.os, 'macOS')
-      run: |
-       brew install autoconf
-       brew install automake
-       brew install m4
-       brew install pkg-config
-       brew install libtool
-
-    - uses: actions/checkout@v4
 
     # The shared action checks the siblings out at the branch that matches this
     # change (the PR branch if the sibling has it, else the PR base branch, else
@@ -63,22 +30,10 @@ jobs:
         path: ..
         packages: Absyn ImmutableList MetaModelica
 
-    - name: configure the library and build
-      run: |
-        which gcc
-        gcc --version
-        cd lib/parser
-        autoconf
-        ./configure
-        make
-        cd ../build/lib
-        tar -czvf ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz *
-        mv ${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz '${{ github.workspace }}/'.
-
     - name: Develop sibling OM.jl packages
       shell: bash
       run: |
-        julia --compiled-modules=no --color=yes --project -e '
+        julia --color=yes --project -e '
           import Pkg
           Pkg.Registry.add("General")
           Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/OpenModelica/OpenModelicaRegistry.git"))
@@ -87,18 +42,9 @@ jobs:
             Pkg.PackageSpec(path="../MetaModelica.jl"),
             Pkg.PackageSpec(path="../Absyn.jl"),
           ])
+          Pkg.instantiate()
         '
 
-    - name: Build
-      # Always use bash to avoid having to escape quotes for Windows
+    - name: Test
       shell: bash
-      run: julia --compiled-modules=no --color=yes --project -e 'import Pkg; Pkg.Registry.add("General"); Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/OpenModelica/OpenModelicaRegistry.git")); Pkg.build(;verbose = true);Pkg.instantiate(); Pkg.resolve()'
-
-    - name:  Test
-      run: julia --color=yes --project -e 'import Pkg; Pkg.test("Absyn"); Pkg.test("OMParser")'
-
-    - name: upload library
-      uses: actions/upload-artifact@v4
-      with:
-        name: parser-library-${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}
-        path: ${{ github.workspace }}/${{ matrix.sys.os }}-julia-${{ matrix.julia-version }}-library.tar.gz
+      run: julia --color=yes --project -e 'import Pkg; Pkg.test("OMParser")'
