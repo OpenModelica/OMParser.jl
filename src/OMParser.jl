@@ -63,6 +63,8 @@ function last_parse_error_message()
   end
 end
 
+include("RD/RD.jl")
+
 function isDerCref(exp::Absyn.Exp)::Bool
   @match exp begin
     Absyn.CALL(Absyn.CREF_IDENT("der",  nil()), Absyn.FUNCTIONARGS(Absyn.CREF(__) <|  nil(),  nil()), nil())  => true
