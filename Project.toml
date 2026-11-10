@@ -1,28 +1,20 @@
 name = "OMParser"
 uuid = "11f87224-cae7-4e99-a924-e50d12f62c59"
-authors = ["Adrian Pop <adrian.pop@liu.se>", "John Tinnerholm <john.tinnerholm@liu.se>"]
-version = "0.2.4"
+authors = ["John Tinnerholm <john.tinnerholm@liu.se>", "Adrian Pop <adrian.pop@liu.se>"]
+version = "1.0.0"
 
 [deps]
-Absyn = "ce2f92e2-a952-11e9-0543-8b443f216f1d"
-CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
-Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 ExportAll = "ad2082ca-a69e-11e9-38fa-e96309a31fe4"
-Glob = "c27321d9-0574-5035-807b-f59d2c89b15c"
 ImmutableList = "4a558cac-c1ed-11e9-20da-3584bcd8709a"
-Inflate = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
-MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 MetaModelica = "9d7f2a79-07b5-5542-8b19-c0100dda6b06"
-Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
-TarIterators = "06456b94-f2fb-4c2e-911f-0795f0d2fb0a"
-ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
+PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 
 [compat]
 julia = "1.13"
-Absyn = "1.4"
-ImmutableList = "0.4.2, 0.5"
+ExportAll = "0.1"
+ImmutableList = "0.4.2, 0.5, 0.6"
 MetaModelica = "0.4.2, 0.5"
+PrecompileTools = "1"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

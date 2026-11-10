@@ -1,6 +1,12 @@
 using Test
 
 import OMParser
+import MetaModelica
+
+include("dispatchCheck.jl")
+include("absynTests.jl")
+include("modelicaMacroTests.jl")
+include("mslExampleTests.jl")
 
 cd(@__DIR__) do
   @testset "Simple standalone modules" begin
@@ -68,8 +74,7 @@ cd(@__DIR__) do
 
     first_error = parse_error_message(bad_contents, "bad1.mo")
     @test first_error !== nothing
-    @test occursin("bad1.mo", first_error)
-    @test occursin("Missing token: SEMICOLON", first_error)
+    @test startswith(first_error, "bad1.mo:2:9: Expected ';' after the element but found 'equation' on line 3")
 
     @test true == begin
       try
@@ -84,8 +89,63 @@ cd(@__DIR__) do
 
     second_error = parse_error_message(bad_contents, "bad2.mo")
     @test second_error !== nothing
-    @test occursin("bad2.mo", second_error)
-    @test occursin("Missing token: SEMICOLON", second_error)
+    @test startswith(second_error, "bad2.mo:2:9: Expected ';'")
+  end
+
+  @testset "Error messages" begin
+    function message(contents::String)::String
+      try
+        OMParser.parseString(contents, "e.mo")
+        return "accepted"
+      catch err
+        err isa OMParser.ParseError || rethrow()
+        return sprint(showerror, err)
+      end
+    end
+    @test message("model X\n  Real x;\nequation\n  x = ;\nend X;\n") ==
+          "e.mo:4:7: Expected an expression but found ';'\n    x = ;\n        ^"
+    @test startswith(message("model X\n  Real x;\nequation\n  x = 1\nend X;\n"),
+                     "e.mo:4:8: Expected ';' after the equation but found 'end X' on line 5")
+    @test startswith(message("model X\n  Real x;\nend Y;\n"),
+                     "e.mo:1:7: The identifier at start and end are different: 'X' and 'Y'")
+    @test startswith(message("model X\n  String s = \"abc;\nend X;\n"),
+                     "e.mo:2:14: Unterminated string")
+    @test startswith(message("model X\n  Real x = 1 && 2;\nend X;\n"),
+                     "e.mo:2:14: Please use 'and' for logical and")
+    @test startswith(message("model X\n  Real x(start = 1;\nend X;\n"),
+                     "e.mo:2:19: Expected ')' at the end of the modification but found ';'")
+    @test startswith(message("model X\n  Real x;\nend X"),
+                     "e.mo:3:6: Expected ';' after the class definition but found end of file")
+    local err = try OMParser.parseFile(joinpath(@__DIR__, "NoSuchFile.mo")); nothing catch e; e end
+    @test err isa OMParser.ParseError && err.line == 0
+  end
+
+  #= Values from OMParser 0.2's ANTLR parser (the same as omc's). =#
+  @testset "Source positions and comments" begin
+    #= SOURCEINFO is mutable: compare its fields. =#
+    fields(i::MetaModelica.SourceInfo) = ntuple(k -> getfield(i, k), fieldcount(typeof(i)))
+    local p = OMParser.parseString("model A \"doc\"\n  Real x; // c\nequation\n  x = 1;\nend A;\n", "pos.mo")
+    local c = p.classes.head
+    @test fields(c.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 1, 1, 5, 6, 0.0))
+    local elements = c.body.classParts.head.contents
+    @test fields(elements.head.element.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 2, 3, 2, 9, 0.0))
+    @test elements.tail.head == OMParser.Absyn.LEXER_COMMENT("// c\n")
+    local eq = c.body.classParts.tail.head.contents.head
+    @test fields(eq.info) == fields(MetaModelica.SOURCEINFO("pos.mo", true, 4, 3, 4, 8, 0.0))
+  end
+
+  #= Every call in the parser resolved when compiled: fast, compiled ahead by the precompile
+     workload, and a requirement of `juliac --trim=safe`. =#
+  @testset "Token names" begin
+    @test all(k -> haskey(OMParser.Parser.TOKEN_NAMES, k), instances(OMParser.Parser.TokenKind))
+  end
+
+  @testset "No dynamic dispatch" begin
+    local calls = dynamicCalls()
+    for (m, call) in calls
+      @info "Dynamic dispatch in $(m.name): $(call)"
+    end
+    @test isempty(calls)
   end
 
   #= Tests to see if the parser can handle the MM language.=#
@@ -130,6 +190,18 @@ cd(@__DIR__) do
     @test z isa OMParser.Absyn.CALL && z.function_.name == "pure"
     #= A tuple can not be subscripted. =#
     @test_throws Exception OMParser.parseString("model M Real y = (1, 2)[1]; end M;")
+  end
+
+  #= omc's lexer (BaseModelica_Lexer.g): QCHAR includes '"'; IDENT2 includes $Sensitivities and $DER. =#
+  @testset "Identifiers as in omc's lexer" begin
+    local p = OMParser.parseString(raw"model 'a\"b' Real y = $DER.x + $Sensitivities; end 'a\"b';")
+    local c = p.classes.head
+    @test c.name == raw"'a\"b'"
+    local comps = c.body.classParts.head.contents
+    local y = comps.head.element.specification.components.head.component.modification.data.eqMod.exp
+    @test y isa OMParser.Absyn.BINARY
+    @test y.exp1.componentRef isa OMParser.Absyn.CREF_QUAL && y.exp1.componentRef.name == raw"$DER"
+    @test y.exp2.componentRef isa OMParser.Absyn.CREF_IDENT && y.exp2.componentRef.name == raw"$Sensitivities"
   end
 
   @testset "Standard Library" begin
