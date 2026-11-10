@@ -131,7 +131,8 @@ The text is taken as written, as in a Modelica file: a dollar sign is a dollar s
 backslashes stay, so the escapes of a Modelica string (`"one\\ntwo"`) are written as there. The
 one exception is Julia's rule for string macros: a backslash before a double quote escapes the
 quote, so a quote escaped inside a Modelica string (backslash, quote) is written with two
-backslashes.
+backslashes. Line ends are line feeds, also in a Julia file with CRLF line ends: Julia's parser
+reads every line end of a string literal as one.
 
 A text built from values is written with `@Modelica`, which interpolates. A text held in a
 variable is parsed with `parseString`.

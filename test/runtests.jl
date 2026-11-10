@@ -6,6 +6,7 @@ import MetaModelica
 include("dispatchCheck.jl")
 include("absynTests.jl")
 include("modelicaMacroTests.jl")
+include("mslExampleTests.jl")
 
 cd(@__DIR__) do
   @testset "Simple standalone modules" begin

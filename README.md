@@ -61,7 +61,7 @@ program = Modelica"""
   evaluation gives the same object).
 - The text is taken as written, as in a Modelica file: `$` and backslashes stay. The one exception
   is Julia's rule for string macros: a quote escaped in a Modelica string takes two backslashes
-  (`\\"`).
+  (`\\"`). Line ends are line feeds, also in a Julia file with CRLF line ends.
 - Positions and error messages name the Julia file and its lines. Julia gives a macro the line of
   its call only: a text of several lines is taken to start on the line after the call (as above),
   a text of one line on the line of the call.
@@ -71,6 +71,10 @@ program = Modelica"""
   written `\\`, a dollar sign `\$`).
 - The grammar is Modelica of the latest standard. Other grammars, and a text held in a variable:
   `parseString`.
+- Tested on the 278 example models of the Modelica Standard Library 3.2.1, each written in both
+  forms: every one gives the class of the library, positions included. 177 are written as they are
+  in the library; the 101 with escaped quotes in their documentation take the two backslashes, and
+  are a `ParseError` when the file is loaded if pasted unchanged ([test/README.md](test/README.md)).
 
 ## How it works
 A lexer (`src/Parser/Lexer.jl`) and a recursive-descent parser (`src/Parser/Rules.jl`) with one
@@ -89,3 +93,7 @@ The parser has no dynamic dispatch (tested), so programs that use it can be comp
 ## License
 GPL version 3 ([COPYING](COPYING)) or the OSMC Public License (OSMC-PL), according to the
 recipient's choice: see [LICENSE.md](LICENSE.md).
+
+`test/msl.mo` is test data under another license: the Modelica Standard Library 3.2.1, licensed by
+the Modelica Association under the Modelica License 2 (the license text is in the file). See
+[test/README.md](test/README.md).
