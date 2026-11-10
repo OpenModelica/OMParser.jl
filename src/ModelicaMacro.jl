@@ -26,7 +26,7 @@ CONDITIONS OF OSMC-PL.
 =#
 
 #=
-`@Modelica` and `Modelica"..."`: Modelica source written in a Julia file, as its `Absyn.Program`.
+`Modelica"..."` and `@Modelica`: Modelica source written in a Julia file, as its `Absyn.Program`.
 =#
 
 """
@@ -55,8 +55,8 @@ end
 """
     modelicaProgram(text::String, file::String, firstLine::Int)::Absyn.Program
 
-Parse the text of a `@Modelica` call: Modelica of the latest standard, with positions in `file`
-from the line `firstLine` on. Throws a `ParseError`.
+Parse the text of a `Modelica"..."` or `@Modelica` call: Modelica of the latest standard, with
+positions in `file` from the line `firstLine` on. Throws a `ParseError`.
 """
 function modelicaProgram(text::String, file::String, firstLine::Int)::Absyn.Program
   return parseString(text, file; firstLine = firstLine)
@@ -65,8 +65,8 @@ end
 """
     modelicaLiteral(text::String, source::LineNumberNode)::QuoteNode
 
-The expansion of `@Modelica` for a string literal: the text is parsed now, and the expansion is
-the program itself, quoted.
+The expansion of `Modelica"..."`, and of `@Modelica` for a string literal without interpolations:
+the text is parsed now, and the expansion is the program itself, quoted.
 """
 function modelicaLiteral(text::String, source::LineNumberNode)::QuoteNode
   return QuoteNode(modelicaProgram(text, macroFile(source), textFirstLine(source, '\n' in text)))
@@ -106,12 +106,13 @@ function modelicaExpansion(text::Any, source::LineNumberNode)::Union{QuoteNode, 
 end
 
 """
-    @Modelica text
+    Modelica"text"
+    Modelica\"\"\"text\"\"\"
 
 Modelica source written in a Julia file, as its `Absyn.Program`.
 
 ```julia
-program = @Modelica \"\"\"
+program = Modelica\"\"\"
   model Decay
     Real x(start = 1.0);
   equation
@@ -126,10 +127,14 @@ is parsed when the code runs). The `SourceInfo`s and the error messages name the
 its lines; columns count from the left margin of the text (Julia removes the indentation of a
 triple-quoted string).
 
-A text with interpolations, `@Modelica "model \$name end \$name;"`, is put together and parsed
-each time the code runs. A dollar sign of the Modelica text is written `\\\$`. For a text with
-backslashes (the escapes of a Modelica string) there is `Modelica"..."`, which takes the text as
-written. A text held in a variable is parsed with `parseString`.
+The text is taken as written, as in a Modelica file: a dollar sign is a dollar sign and
+backslashes stay, so the escapes of a Modelica string (`"one\\ntwo"`) are written as there. The
+one exception is Julia's rule for string macros: a backslash before a double quote escapes the
+quote, so a quote escaped inside a Modelica string (backslash, quote) is written with two
+backslashes.
+
+A text built from values is written with `@Modelica`, which interpolates. A text held in a
+variable is parsed with `parseString`.
 
 Julia gives a macro the line of its call, not the line of the text. A text of several lines is
 taken to start on the line after the call (a triple-quoted string opened on the line of the
@@ -138,26 +143,31 @@ difference.
 
 The grammar is Modelica of the latest standard (the defaults of `parseString`).
 """
-macro Modelica(text::Any)
-  return modelicaExpansion(text, __source__)
+macro Modelica_str(text::String)
+  return modelicaLiteral(text, __source__)
 end
 
 """
-    Modelica"text"
+    @Modelica "text"
 
-`@Modelica` for a text taken as written (a Julia raw string): no interpolation, and backslashes
-stay, so the escapes of Modelica strings are written as in a Modelica file. The one exception is
-Julia's rule for raw strings: a backslash before a double quote escapes the quote, so a quote
-escaped inside a Modelica string (backslash, quote) is written with two backslashes.
+`Modelica"..."` with interpolation: a Modelica text built from values.
 
 ```julia
-program = Modelica\"\"\"
-  model Greeting
-    parameter String text = "one\\ntwo";
-  end Greeting;
-  \"\"\"
+tank(name::String, n::Int) = @Modelica "model \$name Real x[\$n]; end \$name;"
 ```
+
+The text is put together and parsed each time the code runs (a syntax error is a `ParseError`
+then), with the positions of `Modelica"..."`: the Julia file and its lines. The interpolated
+expressions are evaluated where the macro is called.
+
+The text is a Julia string literal, so Julia's escapes apply before the parser sees it: a
+backslash of the Modelica text is written `\\\\`, a dollar sign `\\\$`. A text without
+interpolations is parsed when the macro is expanded, as with `Modelica"..."`, which is the form
+to write such a text in.
+
+Anything but a string literal is an `ArgumentError` when the macro is expanded: a text held in a
+variable is parsed with `parseString`.
 """
-macro Modelica_str(text::String)
-  return modelicaLiteral(text, __source__)
+macro Modelica(text::Any)
+  return modelicaExpansion(text, __source__)
 end

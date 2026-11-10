@@ -1,5 +1,5 @@
 #=
-Tests of `@Modelica` and `Modelica"..."` (Modelica source written in a Julia file) and of
+Tests of `Modelica"..."` and `@Modelica` (Modelica source written in a Julia file) and of
 `parseString`'s `firstLine`, which gives their positions the lines of the Julia file.
 The tests of the macros depend on the lines they are written on: positions are given relative to
 `@__LINE__`.
@@ -40,6 +40,9 @@ emptyModel(name::String)::OMParser.Absyn.Program = @Modelica "model $name end $n
 
 "A program that is a constant of this function."
 constantModel()::OMParser.Absyn.Program = @Modelica "model A end A;"
+
+"A program that is a constant of this function, in the string form."
+constantText()::OMParser.Absyn.Program = Modelica"model A end A;"
 
 #= The source of the test "Source positions and comments" (runtests.jl). =#
 const POSITIONS = "model A \"doc\"\n  Real x; // c\nequation\n  x = 1;\nend A;\n"
@@ -124,6 +127,11 @@ const POSITIONS = "model A \"doc\"\n  Real x; // c\nequation\n  x = 1;\nend A;\n
     local text::String = "model W\n  parameter String s = \"a\\tb \\\"c\\\" \$d\";\nend W;\n"
     @test repr(p) == repr(OMParser.parseString(text, @__FILE__; firstLine = line + 2))
     @test occursin("a\\tb \\\"c\\\" \$d", text) && occursin(repr("a\\tb \\\"c\\\" \$d"), repr(p))
+    #= A text of one line is on the line of the call; parsed once, when the macro is expanded. =#
+    local one::OMParser.Absyn.Program = Modelica"model A end A;"; local oneLine::Int = @__LINE__
+    @test fields(one.classes.head.info) == (@__FILE__, true, oneLine, 1, oneLine, 13, 0.0)
+    @test constantText() === constantText()
+    @test expansionError(@__MODULE__, :(Modelica"model X Real x end X;")) isa OMParser.ParseError
   end
 
   @testset "Errors when the macro is expanded" begin

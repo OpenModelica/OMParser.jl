@@ -66,7 +66,7 @@ Grammars (`acceptedGram`):
 Parse Modelica source text. `interactiveFileName` is the file name in the `SourceInfo`s and in
 error messages, and the classes are marked read-only. The text ends at its first NUL character
 (as omc reads it). `firstLine` is the number of the text's first line: 1, or the line the text
-starts on in the file it is part of (`@Modelica` passes the line of the Julia file), so that the
+starts on in the file it is part of (`Modelica"..."` passes the line of the Julia file), so that the
 `SourceInfo`s and the error messages give lines of that file. Throws a `ParseError`.
 
 $(ARGUMENTS_TEXT)

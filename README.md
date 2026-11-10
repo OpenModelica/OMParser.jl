@@ -7,7 +7,7 @@ build.
 
 Two modules: `OMParser.Absyn`, the syntax tree records (formerly the package Absyn.jl), and
 `OMParser.Parser`, the lexer and parser. `parseFile`, `parseString` and `ParseError` are also
-`OMParser.parseFile` etc. `@Modelica` takes Modelica source written in a Julia file.
+`OMParser.parseFile` etc. `Modelica"..."` takes Modelica source written in a Julia file.
 
 ## Install
 OMParser is in the OpenModelica registry:
@@ -45,10 +45,10 @@ M.mo:2:9: Expected ';' after the element but found 'equation' on line 3
 ```
 
 ### Modelica in a Julia file
-`@Modelica` (exported) gives the `Absyn.Program` of Modelica source written in a Julia file:
+`Modelica"""..."""` (exported) gives the `Absyn.Program` of Modelica source written in a Julia file:
 ```julia
 using OMParser
-program = @Modelica """
+program = Modelica"""
   model Decay
     Real x(start = 1.0);
   equation
@@ -59,14 +59,16 @@ program = @Modelica """
 - The text is parsed when the macro is expanded: a syntax error is a `ParseError` when the file is
   loaded, and the program is a constant of the code (nothing is parsed when the code runs, each
   evaluation gives the same object).
+- The text is taken as written, as in a Modelica file: `$` and backslashes stay. The one exception
+  is Julia's rule for string macros: a quote escaped in a Modelica string takes two backslashes
+  (`\\"`).
 - Positions and error messages name the Julia file and its lines. Julia gives a macro the line of
   its call only: a text of several lines is taken to start on the line after the call (as above),
   a text of one line on the line of the call.
-- With interpolations, `@Modelica "model $name end $name;"`, the text is put together and parsed
-  each time the code runs.
-- `Modelica"""..."""` takes the text as written (a raw string: no interpolation, backslashes
-  stay), for Modelica strings with escapes. Only a quote escaped in a Modelica string needs two
-  backslashes (`\\"`), Julia's rule for raw strings.
+- `@Modelica` (exported) is the form with interpolation, for a text built from values:
+  `@Modelica "model $name end $name;"` is put together and parsed each time the code runs. Its
+  text is a Julia string, so Julia's escapes apply first (a backslash of the Modelica text is
+  written `\\`, a dollar sign `\$`).
 - The grammar is Modelica of the latest standard. Other grammars, and a text held in a variable:
   `parseString`.
 
