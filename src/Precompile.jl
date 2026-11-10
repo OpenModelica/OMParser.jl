@@ -229,6 +229,10 @@ PrecompileTools.@compile_workload begin
       err isa ParseError && sprint(showerror, err)
     end
   end
+  #= @Modelica: its two expansions, and the parse of a text from a line of a file on. =#
+  modelicaLiteral("model M\n  Real x;\nend M;\n", LineNumberNode(1, Symbol("<precompile>")))
+  modelicaInterpolated(Any["model ", :M, " end ", :M, ";"], LineNumberNode(1, Symbol("<precompile>")))
+  modelicaProgram("model M end M;", "<precompile>", 2)
   precompile(parseFile, (String,))
   precompile(parseFile, (String, Int64))
   precompile(parseFile, (String, Int64, Int64))

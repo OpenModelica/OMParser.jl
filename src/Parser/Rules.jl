@@ -122,12 +122,12 @@ end
     info(p::ParserState, startToken::Int)::MetaModelica.SourceInfo
 
 `PARSER_INFO(start)`: from token `startToken` to the next token. Columns are ANTLR's character
-positions plus one (plus two for a start on line 1), lines and columns of bytes.
+positions plus one (plus two for a start on the first line), lines and columns of bytes.
 """
 function info(p::ParserState, startToken::Int)::MetaModelica.SourceInfo
   local ts::Tokens = p.ts
   local line1::Int = Int(@inbounds ts.line[startToken])
-  local col1::Int = Int(@inbounds ts.rawColumn[startToken]) + (line1 == 1 ? 2 : 1)
+  local col1::Int = Int(@inbounds ts.rawColumn[startToken]) + (line1 == ts.firstLine ? 2 : 1)
   local line2::Int = Int(@inbounds ts.line[p.pos])
   local col2::Int = Int(@inbounds ts.rawColumn[p.pos]) + 1
   return MetaModelica.SOURCEINFO(p.fileName, p.readOnly, line1, col1, line2, col2, 0.0)
@@ -164,7 +164,7 @@ function errorAt(p::ParserState, i::Int, message::String)
   local ts::Tokens = p.ts
   local pos::Int = Int(ts.start[i])
   local line::Int = Int(ts.line[i])
-  local lineStart::Int = pos - Int(ts.rawColumn[i]) - (line == 1 ? 1 : 0)
+  local lineStart::Int = pos - Int(ts.rawColumn[i]) - (line == ts.firstLine ? 1 : 0)
   throw(ParseError(p.fileName, line, displayColumn(ts.source, lineStart, pos), message, sourceLineAt(ts.source, pos)))
 end
 
@@ -2972,13 +2972,16 @@ end
 #= Entry =#
 
 """
-    parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
+    parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool,
+                firstLine::Int)::Absyn.Program
 
-Tokenize and parse a Modelica (or MetaModelica, ...) source. Throws a `ParseError`.
+Tokenize and parse a Modelica (or MetaModelica, ...) source whose first line has the number
+`firstLine`. Throws a `ParseError`.
 """
-function parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool)::Absyn.Program
+function parseSource(source::String, fileName::String, acceptedGram::Int, langStd::Int, readOnly::Bool,
+                     firstLine::Int)::Absyn.Program
   local dialect::Dialect = Dialect(acceptedGram, langStd)
-  local ts::Tokens = tokenize(source, fileName, dialect)
+  local ts::Tokens = tokenize(source, fileName, dialect, firstLine)
   local p::ParserState = ParserState(ts, dialect, readOnly)
   return storedDefinition(p)
 end

@@ -35,17 +35,20 @@ The Modelica parser of OM.jl, in two modules:
 
 `parseFile` and `parseString` turn Modelica (or MetaModelica, ParModelica, Optimica, PDEModelica)
 source into an `Absyn.Program`, the same trees omc's parser builds. Errors are `ParseError`s that
-say what was expected where.
+say what was expected where. `@Modelica` (and `Modelica"..."`) does the same for Modelica source
+written in a Julia file.
 """
 module OMParser
 
 public Absyn, Parser, parseFile, parseString, ParseError
+export @Modelica, @Modelica_str
 
 include("Absyn/Absyn.jl")
 include("Parser/Parser.jl")
 
 using .Parser: parseFile, parseString, ParseError
 
+include("ModelicaMacro.jl")
 include("Precompile.jl")
 
 end

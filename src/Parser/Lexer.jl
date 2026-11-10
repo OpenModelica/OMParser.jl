@@ -116,6 +116,8 @@ end
 The tokens of one source, as parallel arrays (one entry per token, the last one `TK_EOF`), and its
 comments. Positions are byte offsets into `source` (1-based). `line` and `rawColumn` are the
 token's line and ANTLR character position (see `rawColumn`), which `SourceInfo`s are made from.
+Lines are numbered from `firstLine` (1 for a file; the line a text starts on in the file it is
+written in, see `parseString`).
 The text of a token is `source[textStart:textStop]`: the identifier, the literal, the name after
 `end` of `TK_END_IDENT`, the contents of a string literal without the quotes.
 Comment `c` (`//` with its newline, or `/* */`) is before token `commentNext[c]`.
@@ -123,6 +125,7 @@ Comment `c` (`//` with its newline, or `/* */`) is before token `commentNext[c]`
 struct Tokens
   source::String
   fileName::String
+  firstLine::Int
   kind::Vector{TokenKind}
   start::Vector{Int32}
   textStart::Vector{Int32}
@@ -262,14 +265,14 @@ function describeByte(cu::Base.CodeUnits{UInt8, String}, i::Int)::String
 end
 
 """
-    tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
+    tokenize(source::String, fileName::String, dialect::Dialect, firstLine::Int = 1)::Tokens
 
 Split `source` into tokens as the ANTLR lexers do (`Modelica_3_Lexer`, or `MetaModelica_Lexer`
 for MetaModelica). Whitespace is skipped, comments are kept apart. Throws a `ParseError` for
 input the lexers reject (an unknown character, an unterminated string or comment, `&&`, `||`,
-`!`, an exponent without digits).
+`!`, an exponent without digits). The first line of `source` has the number `firstLine`.
 """
-function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
+function tokenize(source::String, fileName::String, dialect::Dialect, firstLine::Int = 1)::Tokens
   local cu::Base.CodeUnits{UInt8, String} = codeunits(source)
   local n::Int = length(cu)
   local guess::Int = n ÷ 5 + 16
@@ -288,12 +291,12 @@ function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
   local endWords::Dict{UInt128, TokenKind} = dialect.endWords
   local mm::Bool = dialect.metaModelica
   local i::Int = 1
-  local line::Int = 1
+  local line::Int = firstLine
   local lineStart::Int = 1
   #= Token fields of the token being scanned. =#
   local kind::TokenKind = TK_EOF
   local tokStart::Int = 1
-  local tokLine::Int = 1
+  local tokLine::Int = firstLine
   local tokColumn::Int = 0
   local textStart::Int = 1
   local textStop::Int = 0
@@ -319,7 +322,7 @@ function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
     end
     tokStart = i
     tokLine = line
-    tokColumn = (i - lineStart) - (line == 1 ? 1 : 0)
+    tokColumn = (i - lineStart) - (line == firstLine ? 1 : 0)
     if i > n
       push!(kinds, TK_EOF); push!(starts, Int32(i)); push!(textStarts, Int32(i)); push!(textStops, Int32(i - 1))
       push!(lines, Int32(tokLine)); push!(columns, Int32(tokColumn))
@@ -531,7 +534,7 @@ function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
             end
             j += 1
           end
-          closed || lexError(source, fileName, tokLine, tokStart - tokColumn - (tokLine == 1 ? 1 : 0), tokStart,
+          closed || lexError(source, fileName, tokLine, tokStart - tokColumn - (tokLine == firstLine ? 1 : 0), tokStart,
                              "Unterminated comment: '/*' without '*/'")
           push!(commentStarts, Int32(tokStart)); push!(commentStops, Int32(j - 1))
           push!(commentNexts, Int32(length(kinds) + 1))
@@ -557,7 +560,7 @@ function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
           end
           i += 1
         end
-        closed || lexError(source, fileName, tokLine, tokStart - tokColumn - (tokLine == 1 ? 1 : 0), tokStart,
+        closed || lexError(source, fileName, tokLine, tokStart - tokColumn - (tokLine == firstLine ? 1 : 0), tokStart,
                            "Unterminated string: '\"' without a closing '\"'")
         textStop = i - 1
         i += 1
@@ -591,7 +594,7 @@ function tokenize(source::String, fileName::String, dialect::Dialect)::Tokens
     push!(kinds, kind); push!(starts, Int32(tokStart)); push!(textStarts, Int32(textStart))
     push!(textStops, Int32(textStop)); push!(lines, Int32(tokLine)); push!(columns, Int32(tokColumn))
   end
-  return Tokens(source, fileName, kinds, starts, textStarts, textStops, lines, columns,
+  return Tokens(source, fileName, firstLine, kinds, starts, textStarts, textStops, lines, columns,
                 commentStarts, commentStops, commentNexts)
 end
 

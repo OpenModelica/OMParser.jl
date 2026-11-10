@@ -61,19 +61,22 @@ Grammars (`acceptedGram`):
 
 """
     parseString(contents::String, interactiveFileName::String = "<default>",
-                acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+                acceptedGram::Int64 = 1, languageStandard::Int64 = 1000; firstLine::Int = 1)::Absyn.Program
 
 Parse Modelica source text. `interactiveFileName` is the file name in the `SourceInfo`s and in
 error messages, and the classes are marked read-only. The text ends at its first NUL character
-(as omc reads it). Throws a `ParseError`.
+(as omc reads it). `firstLine` is the number of the text's first line: 1, or the line the text
+starts on in the file it is part of (`@Modelica` passes the line of the Julia file), so that the
+`SourceInfo`s and the error messages give lines of that file. Throws a `ParseError`.
 
 $(ARGUMENTS_TEXT)
 """
 function parseString(contents::String, interactiveFileName::String = "<default>",
-                     acceptedGram::Int64 = 1, languageStandard::Int64 = 1000)::Absyn.Program
+                     acceptedGram::Int64 = 1, languageStandard::Int64 = 1000; firstLine::Int = 1)::Absyn.Program
+  firstLine >= 1 || throw(ArgumentError("firstLine is a line number, 1 or more: got " * string(firstLine)))
   local nul::Union{Nothing, Int} = findfirst(==(0x00), codeunits(contents))
   local source::String = nul === nothing ? contents : String(codeunits(contents)[1:nul - 1])
-  return parseSource(source, interactiveFileName, acceptedGram, languageStandard, true)
+  return parseSource(source, interactiveFileName, acceptedGram, languageStandard, true, firstLine)
 end
 
 """
@@ -91,7 +94,7 @@ function parseFile(fileName::String, acceptedGram::Int64 = 1, languageStandard::
     err isa SystemError || rethrow()
     throw(ParseError(fileName, 0, 0, "cannot read the file: " * Libc.strerror(err.errnum), ""))
   end
-  return parseSource(source, fileName, acceptedGram, languageStandard, false)
+  return parseSource(source, fileName, acceptedGram, languageStandard, false, 1)
 end
 
 end
