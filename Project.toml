@@ -1,7 +1,7 @@
 name = "OMParser"
 uuid = "11f87224-cae7-4e99-a924-e50d12f62c59"
 authors = ["John Tinnerholm <john.tinnerholm@liu.se>", "Adrian Pop <adrian.pop@liu.se>"]
-version = "1.0.0"
+version = "1.1.0"
 
 [deps]
 ExportAll = "ad2082ca-a69e-11e9-38fa-e96309a31fe4"
@@ -12,8 +12,8 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 [compat]
 julia = "1.13"
 ExportAll = "0.1"
-ImmutableList = "0.4.2, 0.5, 0.6"
-MetaModelica = "0.4.2, 0.5"
+ImmutableList = "0.6"
+MetaModelica = "1"
 PrecompileTools = "1"
 
 [extras]
