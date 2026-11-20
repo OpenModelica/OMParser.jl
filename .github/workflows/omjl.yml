@@ -6,8 +6,24 @@ name: OM.jl integration
 # .github/workflows/omjl-ci.yml.
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE*'
+      - 'COPYING'
+      - 'CITATION.bib'
+      - '.gitignore'
+      - '.github/workflows/main.yml'
   push:
     branches: [master, "1.13"]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE*'
+      - 'COPYING'
+      - 'CITATION.bib'
+      - '.gitignore'
+      - '.github/workflows/main.yml'
   workflow_dispatch:
 
 permissions:
