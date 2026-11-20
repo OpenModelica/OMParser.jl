@@ -13,7 +13,7 @@ PrecompileTools = "aea7be01-6a6a-4083-8856-8a6e6704d82a"
 julia = "1.13"
 ExportAll = "0.1"
 ImmutableList = "0.6"
-MetaModelica = "1"
+MetaModelica = "0.5, 1"
 PrecompileTools = "1"
 
 [extras]
