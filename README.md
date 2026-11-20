@@ -9,14 +9,6 @@ Two modules: `OMParser.Absyn`, the syntax tree records (formerly the package Abs
 `OMParser.Parser`, the lexer and parser. `parseFile`, `parseString` and `ParseError` are also
 `OMParser.parseFile` etc. `Modelica"..."` takes Modelica source written in a Julia file.
 
-## Install
-OMParser is in the OpenModelica registry:
-```julia
-import Pkg
-Pkg.Registry.add(Pkg.RegistrySpec(url = "https://github.com/OpenModelica/OpenModelicaRegistry.git"))
-Pkg.add("OMParser")
-```
-
 ## Use
 ```julia
 import OMParser
@@ -89,6 +81,17 @@ compiler's MetaModelica sources and the Buildings library.
 The parser has no dynamic dispatch (tested), so programs that use it can be compiled with
 [JuliaC](https://github.com/JuliaLang/JuliaC.jl) and `--trim=safe`. `bin/omparse.jl` is an example
 (the build command is in the file): a 2.4 MB executable that parses MSL 4.1.0 in 0.13 s.
+
+## Install
+Either clone the repository and dev it using the standard Julia package tools or you can install it via a registry that contains the package.
+The OpenModelica registry for OpenModelica Julia packages should contain the latest version. See below for how to use that registry.
+###  OpenModelica registry
+OMParser is in the OpenModelica registry:
+```julia
+import Pkg
+Pkg.Registry.add(Pkg.RegistrySpec(url = "https://github.com/OpenModelica/OpenModelicaRegistry.git"))
+Pkg.add("OMParser")
+```
 
 ## License
 GPL version 3 ([COPYING](COPYING)) or the OSMC Public License (OSMC-PL), according to the
