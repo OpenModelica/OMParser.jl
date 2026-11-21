@@ -1,5 +1,9 @@
 # OMParser.jl
 
+## NOTE
+OMParser has been renamed to [OpenModelicaParser.jl](https://github.com/OpenModelica/OpenModelicaParser.jl)
+See that package for new developments. This package remains as a reference.
+
 A Modelica parser written in Julia. It reads Modelica (and MetaModelica, ParModelica, Optimica and
 PDEModelica) into `Absyn` trees, the abstract syntax of the OpenModelica compiler, which
 [OMFrontend.jl](https://github.com/OpenModelica/OMFrontend.jl) instantiates. Pure Julia: nothing to
